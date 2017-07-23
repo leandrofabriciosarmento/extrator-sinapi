@@ -93,12 +93,12 @@ public class Main {
 
 		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
 
-//		String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
+		String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
 		String folderTarget = "C:\\Users\\Leandro\\Documents\\projetos\\extrator-sinapi\\target\\";
-//		String toFile = folderTarget + parametros + ".zip";
+		String toFile = folderTarget + parametros + ".zip";
 
-		// downloadFile(urlFormatada, toFile);
-		// unZipIt(toFile, folderTarget + parametros);
+		downloadFile(urlFormatada, toFile);
+		unZipIt(toFile, folderTarget + parametros);
 
 		String pathArquivoXLS = folderTarget + parametros + "/SINAPI_Custo_Ref_Composicoes_Analitico_" + parametros
 				+ ".xls";
@@ -106,7 +106,7 @@ public class Main {
 		parse(pathArquivoXLS, referencia);
 
 		Gson gson = new Gson();
-		gson.toJson(referencia, new FileWriter(parametros+".json"));
+		gson.toJson(referencia, new FileWriter(parametros + ".json"));
 	}
 
 	private static Composicao ultimaComposicaoEncontrada = null;
