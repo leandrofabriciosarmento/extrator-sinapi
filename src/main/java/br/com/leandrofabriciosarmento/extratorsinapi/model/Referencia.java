@@ -9,6 +9,8 @@ public class Referencia implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private String uf;
+	private String mes;
+	private int ano;
 	private String periodo;
 	private String desoneracao;
 	private List<Composicao> composicaos = new ArrayList<>();
@@ -47,6 +49,22 @@ public class Referencia implements Serializable {
 
 	public void addComposicaos(Composicao composicao) {
 		this.composicaos.add(composicao);
+	}
+
+	public String getMes() {
+	    return mes;
+	}
+
+	public void setMes(String mes) {
+	    this.mes = mes;
+	}
+
+	public int getAno() {
+	    return ano;
+	}
+
+	public void setAno(int ano) {
+	    this.ano = ano;
 	}
 
 }

@@ -55,13 +55,13 @@ public class Main {
 
 	List<Referencia> referencias = new ArrayList<>();
 
-	/*
-	 * String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
-	 * "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR",
-	 * "SC", "SP", "SE", "TO" };
-	 */
+	
+	  String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+	  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR",
+	  "SC", "SP", "SE", "TO" };
+	 
 
-	String[] ufs = { "AC" };
+	//String[] ufs = { "AC" };
 
 	String mesAno = String.format("%02d", mes) + ano;
 
@@ -105,11 +105,11 @@ public class Main {
 
 	String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
 	String path = new File(".").getCanonicalPath();
-	String folderTarget = path + "\\target\\";
+	String folderTarget = path + "/target/";
 	String toFile = folderTarget + parametros + ".zip";
 
 	// downloadFile(urlFormatada, toFile);
-	// unZipIt(toFile, folderTarget + parametros);
+	unZipIt(toFile, folderTarget + parametros);
 
 	String pathArquivoXLS = folderTarget + parametros + "/SINAPI_Custo_Ref_Composicoes_Analitico_"
 		+ referencia.getUf().toUpperCase() + "_" + referencia.getAno() + "" + referencia.getMes() + "_"
@@ -117,7 +117,7 @@ public class Main {
 
 	System.out.println(pathArquivoXLS);
 
-	//parseAnalitico(pathArquivoXLS, referencia);
+	parseAnalitico(pathArquivoXLS, referencia);
 
     }
 
