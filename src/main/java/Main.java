@@ -1,7 +1,6 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -9,6 +8,8 @@ import java.net.CookiePolicy;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -55,11 +56,9 @@ public class Main {
 
 	List<Referencia> referencias = new ArrayList<>();
 
-	
-	  String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
-	  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR",
-	  "SC", "SP", "SE", "TO" };
-	 
+	 String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+	 "MT", "MS", "MG", "PA", "PB", "PR",
+	 "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO" };
 
 	//String[] ufs = { "AC" };
 
@@ -101,6 +100,16 @@ public class Main {
 
     private static void extrair(Referencia referencia) throws IOException {
 
+
+	// parseAnalitico(pathArquivoXLS, referencia);
+	parseSintetico(referencia);
+
+    }
+
+    private static Composicao ultimaComposicaoEncontrada = null;
+
+    public static void parseSintetico(Referencia referencia) throws IOException {
+
 	String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
 
 	String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
@@ -108,22 +117,69 @@ public class Main {
 	String folderTarget = path + "/target/";
 	String toFile = folderTarget + parametros + ".zip";
 
-	// downloadFile(urlFormatada, toFile);
+	downloadFile(urlFormatada, toFile);
 	unZipIt(toFile, folderTarget + parametros);
-
-	String pathArquivoXLS = folderTarget + parametros + "/SINAPI_Custo_Ref_Composicoes_Analitico_"
+	
+	String pathArquivoXLS = folderTarget + parametros + "/SINAPI_Custo_Ref_Composicoes_Sintetico_"
 		+ referencia.getUf().toUpperCase() + "_" + referencia.getAno() + "" + referencia.getMes() + "_"
 		+ referencia.getDesoneracao() + ".xls";
 
 	System.out.println(pathArquivoXLS);
 
-	parseAnalitico(pathArquivoXLS, referencia);
+	HSSFWorkbook workbook;
+	FileInputStream fileInputStream = null;
 
+	try {
+	    fileInputStream = new FileInputStream(pathArquivoXLS);
+	    workbook = new HSSFWorkbook(fileInputStream);
+
+	    HSSFSheet sheet = workbook.getSheetAt(0);
+
+	    List<SubComposicao> subComposicoes = new ArrayList<>();
+
+	    for (int rowIndex = 5; rowIndex <= sheet.getLastRowNum() ; rowIndex++) {
+
+		Row row = sheet.getRow(rowIndex);
+
+		if (row == null) {
+		    continue;
+		}
+		if (logger.isDebugEnabled()) {
+		    // System.out.println((rowIndex + 1) + "\t");
+		}
+		parceRowSintetico(row, referencia, subComposicoes);
+
+	    }
+	    workbook.close();
+
+	    Gson gson = new Gson();
+	    String json = gson.toJson(subComposicoes);
+	    Files.write(Paths.get(
+		    referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao() + ".json"
+		    ), json.getBytes());
+	    //, new FileWriter(referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao() + ".json"));
+
+	} catch (IOException e) {
+	    System.err.println(e.getMessage());
+	} finally {
+	    if (fileInputStream != null) {
+		fileInputStream.close();
+	    }
+	}
     }
 
-    private static Composicao ultimaComposicaoEncontrada = null;
-
     public static void parseAnalitico(String file, Referencia referencia) throws IOException {
+
+	String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
+
+	String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
+	String path = new File(".").getCanonicalPath();
+	String folderTarget = path + "/target/";
+	String toFile = folderTarget + parametros + ".zip";
+
+	String pathArquivoXLS = folderTarget + parametros + "/SINAPI_Custo_Ref_Composicoes_Analitico_"
+		+ referencia.getUf().toUpperCase() + "_" + referencia.getAno() + "" + referencia.getMes() + "_"
+		+ referencia.getDesoneracao() + ".xls";
 
 	HSSFWorkbook workbook;
 	FileInputStream fileInputStream = null;
@@ -148,11 +204,11 @@ public class Main {
 
 	    }
 	    workbook.close();
-
-	    Gson gson = new Gson();
-	    gson.toJson(referencia, new FileWriter(
-		    referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao() + ".json"));
-
+	    /*
+	     * Gson gson = new Gson(); gson.toJson(referencia, new FileWriter(
+	     * referencia.getUf() + "_" + referencia.getPeriodo() + "_" +
+	     * referencia.getDesoneracao() + ".json"));
+	     */
 	} catch (IOException e) {
 	    System.err.println(e.getMessage());
 	} finally {
@@ -179,6 +235,53 @@ public class Main {
 	    ultimaComposicaoEncontrada.addSubComposicaos(subComposicao);
 	    extrairLinhaSubComposicao(row, subComposicao);
 	}
+    }
+
+    private static void parceRowSintetico(Row row, Referencia referencia, List<SubComposicao> composicoes) {
+
+	Matcher matcher = patternCodigoSINAPI.matcher(getStringCellValue(row.getCell(6)));
+	boolean linhaSubComposicao = matcher.find();
+
+	if (linhaSubComposicao) {
+	    SubComposicao subComposicao = new SubComposicao();
+	    subComposicao.setBanco("SINAPI");
+	    subComposicao.setAno(referencia.getAno());
+	    subComposicao.setMes(Integer.parseInt(referencia.getMes()));
+	    extrairLinhaComposicaoSintetico(row, subComposicao);
+	    composicoes.add(subComposicao);
+	}
+
+    }
+
+    private static void extrairLinhaComposicaoSintetico(Row row, SubComposicao subComposicao) {
+
+	int lastCell = row.getLastCellNum();
+	for (int cellIndex = 0; cellIndex < lastCell; cellIndex++) {
+	    Cell cell = row.getCell(cellIndex);
+	    String cellValue = getStringCellValue(cell);
+
+	    // System.out.println("\t" + cellValue);
+
+	    switch (cellIndex) {
+	    case 6:
+		subComposicao.setCodigoComposicao(cellValue);
+		break;
+	    case 7:
+		subComposicao.setNomeComposicao(cellValue);
+		break;
+	    case 8:
+		subComposicao.setUnidadeMedida(cellValue);
+		break;
+	    case 10:
+		subComposicao.setPrecoUnitario(cellValue);
+		break;
+	    default:
+		break;
+	    }
+	    // System.out.println("\t" + cellValue);
+
+	}
+	// System.out.println("\n");
     }
 
     private static void extrairLinhaSubComposicao(Row row, SubComposicao subComposicao) {

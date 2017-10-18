@@ -6,6 +6,9 @@ public class SubComposicao implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
+	private String banco;
+	private int ano;
+	private int mes;
 	private String tipo;
 	private String nomeComposicao;
 	private String codigoComposicao;
@@ -70,4 +73,29 @@ public class SubComposicao implements Serializable {
 		this.custoTotal = custoTotal;
 	}
 
+	public String getBanco() {
+	    return banco;
+	}
+
+	public void setBanco(String banco) {
+	    this.banco = banco;
+	}
+
+	public int getAno() {
+	    return ano;
+	}
+
+	public void setAno(int ano) {
+	    this.ano = ano;
+	}
+
+	public int getMes() {
+	    return mes;
+	}
+
+	public void setMes(int mes) {
+	    this.mes = mes;
+	}
+
+	
 }
