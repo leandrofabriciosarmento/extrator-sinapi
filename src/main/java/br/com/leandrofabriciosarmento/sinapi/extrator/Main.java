@@ -1,3 +1,4 @@
+package br.com.leandrofabriciosarmento.sinapi.extrator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -23,9 +24,9 @@ import org.apache.poi.ss.usermodel.Row;
 
 import com.google.gson.JsonIOException;
 
-import br.com.leandrofabriciosarmento.extratorsinapi.model.Composicao;
-import br.com.leandrofabriciosarmento.extratorsinapi.model.Referencia;
-import br.com.leandrofabriciosarmento.extratorsinapi.model.SubComposicao;
+import br.com.leandrofabriciosarmento.sinapi.extrator.model.Composicao;
+import br.com.leandrofabriciosarmento.sinapi.extrator.model.Referencia;
+import br.com.leandrofabriciosarmento.sinapi.extrator.model.SubComposicao;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.config.HttpClientConfig;
