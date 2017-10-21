@@ -8,8 +8,6 @@ import java.net.CookiePolicy;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -23,12 +21,15 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 
 import br.com.leandrofabriciosarmento.extratorsinapi.model.Composicao;
 import br.com.leandrofabriciosarmento.extratorsinapi.model.Referencia;
 import br.com.leandrofabriciosarmento.extratorsinapi.model.SubComposicao;
+import io.searchbox.client.JestClient;
+import io.searchbox.client.JestClientFactory;
+import io.searchbox.client.config.HttpClientConfig;
+import io.searchbox.core.Index;
 
 public class Main {
 
@@ -56,11 +57,10 @@ public class Main {
 
 	List<Referencia> referencias = new ArrayList<>();
 
-	 String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
-	 "MT", "MS", "MG", "PA", "PB", "PR",
-	 "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO" };
+	String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR",
+		"PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO" };
 
-	//String[] ufs = { "AC" };
+	// String[] ufs = { "AC" };
 
 	String mesAno = String.format("%02d", mes) + ano;
 
@@ -100,10 +100,26 @@ public class Main {
 
     private static void extrair(Referencia referencia) throws IOException {
 
-
 	// parseAnalitico(pathArquivoXLS, referencia);
 	parseSintetico(referencia);
+    }
 
+    private static void saveInElasticSearch(List<SubComposicao> subComposicoes) throws IOException {
+	// Construct a new Jest client according to configuration via factory
+	JestClientFactory factory = new JestClientFactory();
+	factory.setHttpClientConfig(new HttpClientConfig.Builder("http://localhost:9200").multiThreaded(true)
+		// Per default this implementation will create no more than 2 concurrent
+		// connections per given route
+		// .defaultMaxTotalConnectionPerRoute(<YOUR_DESIRED_LEVEL_OF_CONCURRENCY_PER_ROUTE>)
+		// and no more 20 connections in total
+		// .maxTotalConnection(<YOUR_DESIRED_LEVEL_OF_CONCURRENCY_TOTAL>)
+		.build());
+	JestClient client = factory.getObject();
+
+	for (SubComposicao composicao : subComposicoes) {
+	    Index index = new Index.Builder(composicao).index("precos").type("sinapi").build();
+	    client.execute(index);
+	}
     }
 
     private static Composicao ultimaComposicaoEncontrada = null;
@@ -119,7 +135,7 @@ public class Main {
 
 	downloadFile(urlFormatada, toFile);
 	unZipIt(toFile, folderTarget + parametros);
-	
+
 	String pathArquivoXLS = folderTarget + parametros + "/SINAPI_Custo_Ref_Composicoes_Sintetico_"
 		+ referencia.getUf().toUpperCase() + "_" + referencia.getAno() + "" + referencia.getMes() + "_"
 		+ referencia.getDesoneracao() + ".xls";
@@ -137,27 +153,27 @@ public class Main {
 
 	    List<SubComposicao> subComposicoes = new ArrayList<>();
 
-	    for (int rowIndex = 5; rowIndex <= sheet.getLastRowNum() ; rowIndex++) {
+	    for (int rowIndex = 5; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
 
 		Row row = sheet.getRow(rowIndex);
 
 		if (row == null) {
 		    continue;
 		}
-		if (logger.isDebugEnabled()) {
-		    // System.out.println((rowIndex + 1) + "\t");
-		}
 		parceRowSintetico(row, referencia, subComposicoes);
 
 	    }
 	    workbook.close();
 
-	    Gson gson = new Gson();
-	    String json = gson.toJson(subComposicoes);
-	    Files.write(Paths.get(
-		    referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao() + ".json"
-		    ), json.getBytes());
-	    //, new FileWriter(referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao() + ".json"));
+	    System.out.println("Salvando no ElasticSearch");
+	    saveInElasticSearch(subComposicoes);
+	    System.out.println("Pronto!");
+
+	    /*
+	     * Gson gson = new Gson(); String json = gson.toJson(subComposicoes);
+	     * Files.write(Paths.get( referencia.getUf() + "_" + referencia.getPeriodo() +
+	     * "_" + referencia.getDesoneracao() + ".json" ), json.getBytes());
+	     */
 
 	} catch (IOException e) {
 	    System.err.println(e.getMessage());
@@ -247,6 +263,8 @@ public class Main {
 	    subComposicao.setBanco("SINAPI");
 	    subComposicao.setAno(referencia.getAno());
 	    subComposicao.setMes(Integer.parseInt(referencia.getMes()));
+	    subComposicao.setLocalidade(referencia.getUf());
+	    subComposicao.setDesoneracao(referencia.getDesoneracao());
 	    extrairLinhaComposicaoSintetico(row, subComposicao);
 	    composicoes.add(subComposicao);
 	}
@@ -429,6 +447,11 @@ public class Main {
     private static void downloadFile(String urlFormatada, String toFile) {
 	try {
 
+	    File fileTarget = new File(toFile);
+	    if (fileTarget.exists()) {
+		return;
+	    }
+
 	    if (logger.isDebugEnabled()) {
 		System.out.println("Baixando: " + urlFormatada);
 		System.out.println("Destino: " + toFile);
@@ -437,7 +460,7 @@ public class Main {
 	    CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
 	    URL website = new URL(urlFormatada);
 	    ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-	    FileOutputStream fos = new FileOutputStream(toFile);
+	    FileOutputStream fos = new FileOutputStream(fileTarget);
 	    fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
 	    fos.close();
 	    rbc.close();
@@ -469,6 +492,8 @@ public class Main {
 	    File folder = new File(outputFolder);
 	    if (!folder.exists()) {
 		folder.mkdir();
+	    } else {
+		return;
 	    }
 
 	    fileInputStream = new FileInputStream(zipFile);
