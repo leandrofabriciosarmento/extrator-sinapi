@@ -63,24 +63,24 @@ public class Main {
 
 	// Construct a new Jest client according to configuration via factory
 	JestClientFactory factory = new JestClientFactory();
-//	BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-//	UsernamePasswordCredentials usernamePasswordCredentials = new UsernamePasswordCredentials("user",
-//		"humtntESDW03");
+	// BasicCredentialsProvider credentialsProvider = new
+	// BasicCredentialsProvider();
+	// UsernamePasswordCredentials usernamePasswordCredentials = new
+	// UsernamePasswordCredentials("user",
+	// "humtntESDW03");
 
-//	credentialsProvider.setCredentials(AuthScope.ANY, usernamePasswordCredentials);
+	// credentialsProvider.setCredentials(AuthScope.ANY,
+	// usernamePasswordCredentials);
 
 	factory.setHttpClientConfig(
-		new HttpClientConfig.Builder("http://ec2-18-221-215-19.us-east-2.compute.amazonaws.com:9200")
-			.multiThreaded(true)
-			.defaultCredentials("user", "humtntESDW03")
-			.build());
-//	
-//	factory.setHttpClientConfig(
-//		new HttpClientConfig.Builder("http://localhost:9200")
-//			.multiThreaded(true)
-//			.build());
-	
-	
+		new HttpClientConfig.Builder("http://ec2-18-216-77-189.us-east-2.compute.amazonaws.com:9200")
+			.multiThreaded(true).defaultCredentials("user", "humtntESDW03").build());
+	//
+	// factory.setHttpClientConfig(
+	// new HttpClientConfig.Builder("http://localhost:9200")
+	// .multiThreaded(true)
+	// .build());
+
 	jestClient = factory.getObject();
 
 	List<Referencia> referencias = extrair(9, 2017);
@@ -136,23 +136,37 @@ public class Main {
 
     private static void extrair(Referencia referencia) throws IOException {
 
-	// parseAnalitico(pathArquivoXLS, referencia);
-	parseSintetico(referencia);
+	parseAnalitico(referencia);
+	saveComposicoesInElasticSearch(referencia);
+
+	// parseSintetico(referencia);
     }
 
-    private static void saveInElasticSearch(List<SubComposicao> subComposicoes) throws IOException {
+    private static void saveComposicoesInElasticSearch(Referencia referencia) throws IOException {
 
-	/*for (SubComposicao composicao : subComposicoes) {
-	    Index index = new Index.Builder(composicao).index("precos").type("sinapi").build();
-	    jestClient.execute(index);
-	}*/
-	
+	System.out.println("Salvando no ElasticSearch");
+	Builder bulkIndexBuilder = new Bulk.Builder();
+	for (Composicao composicao : referencia.getComposicaos()) {
+
+	    composicao.setBanco("SINAPI");
+	    composicao.setAno(referencia.getAno());
+	    composicao.setMes(Integer.parseInt(referencia.getMes()));
+	    composicao.setLocalidade(referencia.getUf());
+	    composicao.setDesoneracao(referencia.getDesoneracao().startsWith("N") ? "N" : "S");
+	    bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").build());
+	}
+	jestClient.execute(bulkIndexBuilder.build());
+	System.out.println("Pronto!");
+
+    }
+
+    private static void saveSubcomposicoesInElasticSearch(List<SubComposicao> subComposicoes) throws IOException {
+
 	Builder bulkIndexBuilder = new Bulk.Builder();
 	for (SubComposicao composicao : subComposicoes) {
-            bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").build());
-        }
-        jestClient.execute(bulkIndexBuilder.build());
-        
+	    bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").build());
+	}
+	jestClient.execute(bulkIndexBuilder.build());
 
     }
 
@@ -200,16 +214,6 @@ public class Main {
 	    }
 	    workbook.close();
 
-	    System.out.println("Salvando no ElasticSearch");
-	    saveInElasticSearch(subComposicoes);
-
-	    /*
-	     * try (Writer writer = new FileWriter(nomeArquivo+".json")) { Gson gson = new
-	     * GsonBuilder().create(); gson.toJson(subComposicoes, writer); }
-	     */
-
-	    System.out.println("Pronto!");
-
 	} catch (IOException e) {
 	    System.err.println(e.getMessage());
 	} finally {
@@ -219,7 +223,7 @@ public class Main {
 	}
     }
 
-    public static void parseAnalitico(String file, Referencia referencia) throws IOException {
+    public static void parseAnalitico(Referencia referencia) throws IOException {
 
 	String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
 
@@ -228,15 +232,21 @@ public class Main {
 	String folderTarget = path + "/target/";
 	String toFile = folderTarget + parametros + ".zip";
 
-	String pathArquivoXLS = folderTarget + parametros + "/SINAPI_Custo_Ref_Composicoes_Analitico_"
-		+ referencia.getUf().toUpperCase() + "_" + referencia.getAno() + "" + referencia.getMes() + "_"
-		+ referencia.getDesoneracao() + ".xls";
+	downloadFile(urlFormatada, toFile);
+	unZipIt(toFile, folderTarget + parametros);
+
+	String nomeArquivo = "SINAPI_Custo_Ref_Composicoes_Analitico_" + referencia.getUf().toUpperCase() + "_"
+		+ referencia.getAno() + "" + referencia.getMes() + "_" + referencia.getDesoneracao();
+
+	String pathArquivoXLS = folderTarget + parametros + "/" + nomeArquivo + ".xls";
+
+	System.out.println(pathArquivoXLS);
 
 	HSSFWorkbook workbook;
 	FileInputStream fileInputStream = null;
 
 	try {
-	    fileInputStream = new FileInputStream(file);
+	    fileInputStream = new FileInputStream(pathArquivoXLS);
 	    workbook = new HSSFWorkbook(fileInputStream);
 
 	    HSSFSheet sheet = workbook.getSheetAt(0);
@@ -249,7 +259,7 @@ public class Main {
 		    continue;
 		}
 		if (logger.isDebugEnabled()) {
-		    System.out.println((rowIndex + 1) + "\t");
+		    //System.out.println((rowIndex + 1) + "\t");
 		}
 		parceRow(row, referencia);
 
@@ -267,6 +277,8 @@ public class Main {
 		fileInputStream.close();
 	    }
 	}
+
+	//System.out.println(referencia);
     }
 
     private static void parceRow(Row row, Referencia referencia) {
@@ -369,14 +381,14 @@ public class Main {
 	    default:
 		break;
 	    }
-	    System.out.println("\t" + cellValue);
+	    //System.out.println("\t" + cellValue);
 	}
-	System.out.println("\n");
+	//System.out.println("\n");
     }
 
     private static void extrairLinhaComposicao(Row row, Composicao composicao) {
 
-	System.out.println("***************************************************");
+	//System.out.println("***************************************************");
 
 	int lastCell = row.getLastCellNum();
 	for (int cellIndex = 0; cellIndex < lastCell; cellIndex++) {
@@ -453,9 +465,9 @@ public class Main {
 	    default:
 		break;
 	    }
-	    System.out.println("\t" + cellValue);
+	    //System.out.println("\t" + cellValue);
 	}
-	System.out.println("\n");
+	//System.out.println("\n");
     }
 
     private static String getStringCellValue(Cell cell) {
