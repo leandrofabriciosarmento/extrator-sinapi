@@ -21,11 +21,11 @@
 			<artifactId>log4j</artifactId>
 			<version>1.2.17</version>
 		</dependency>
-		<dependency>
-			<groupId>com.google.code.gson</groupId>
-			<artifactId>gson</artifactId>
-			<version>2.6.2</version>
-		</dependency>
+		<!-- <dependency> -->
+		<!-- <groupId>com.google.code.gson</groupId> -->
+		<!-- <artifactId>gson</artifactId> -->
+		<!-- <version>2.6.2</version> -->
+		<!-- </dependency> -->
 
 		<dependency>
 			<groupId>org.elasticsearch.client</groupId>
@@ -36,7 +36,7 @@
 		<dependency>
 			<groupId>io.searchbox</groupId>
 			<artifactId>jest</artifactId>
-			<version>2.0.0</version>
+			<version>5.3.2</version>
 		</dependency>
 
 	</dependencies>
@@ -76,6 +76,19 @@
 						<format>html</format>
 						<format>xml</format>
 					</formats>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>br.com.leandrofabriciosarmento.sinapi.extrator.Main</mainClass>
+						</manifest>
+					</archive>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
 				</configuration>
 			</plugin>
 

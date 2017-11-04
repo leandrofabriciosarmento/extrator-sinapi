@@ -1,8 +1,11 @@
 package br.com.leandrofabriciosarmento.sinapi.extrator;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -16,12 +19,18 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 
 import br.com.leandrofabriciosarmento.sinapi.extrator.model.Composicao;
@@ -30,6 +39,8 @@ import br.com.leandrofabriciosarmento.sinapi.extrator.model.SubComposicao;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.config.HttpClientConfig;
+import io.searchbox.core.Bulk;
+import io.searchbox.core.Bulk.Builder;
 import io.searchbox.core.Index;
 
 public class Main {
@@ -46,7 +57,31 @@ public class Main {
     static Pattern patternCodigoSINAPIAntigo = Pattern.compile(regexCodigoSINAPIAntigo);
     static Pattern patternZerosSINAPI = Pattern.compile(regexCodigoSINAPIComZeros);
 
+    static JestClient jestClient;
+
     public static void main(String[] args) throws JsonIOException, IOException {
+
+	// Construct a new Jest client according to configuration via factory
+	JestClientFactory factory = new JestClientFactory();
+//	BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+//	UsernamePasswordCredentials usernamePasswordCredentials = new UsernamePasswordCredentials("user",
+//		"humtntESDW03");
+
+//	credentialsProvider.setCredentials(AuthScope.ANY, usernamePasswordCredentials);
+
+	factory.setHttpClientConfig(
+		new HttpClientConfig.Builder("http://ec2-18-221-215-19.us-east-2.compute.amazonaws.com:9200")
+			.multiThreaded(true)
+			.defaultCredentials("user", "humtntESDW03")
+			.build());
+//	
+//	factory.setHttpClientConfig(
+//		new HttpClientConfig.Builder("http://localhost:9200")
+//			.multiThreaded(true)
+//			.build());
+	
+	
+	jestClient = factory.getObject();
 
 	List<Referencia> referencias = extrair(9, 2017);
 
@@ -106,21 +141,19 @@ public class Main {
     }
 
     private static void saveInElasticSearch(List<SubComposicao> subComposicoes) throws IOException {
-	// Construct a new Jest client according to configuration via factory
-	JestClientFactory factory = new JestClientFactory();
-	factory.setHttpClientConfig(new HttpClientConfig.Builder("http://localhost:9200").multiThreaded(true)
-		// Per default this implementation will create no more than 2 concurrent
-		// connections per given route
-		// .defaultMaxTotalConnectionPerRoute(<YOUR_DESIRED_LEVEL_OF_CONCURRENCY_PER_ROUTE>)
-		// and no more 20 connections in total
-		// .maxTotalConnection(<YOUR_DESIRED_LEVEL_OF_CONCURRENCY_TOTAL>)
-		.build());
-	JestClient client = factory.getObject();
 
-	for (SubComposicao composicao : subComposicoes) {
+	/*for (SubComposicao composicao : subComposicoes) {
 	    Index index = new Index.Builder(composicao).index("precos").type("sinapi").build();
-	    client.execute(index);
-	}
+	    jestClient.execute(index);
+	}*/
+	
+	Builder bulkIndexBuilder = new Bulk.Builder();
+	for (SubComposicao composicao : subComposicoes) {
+            bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").build());
+        }
+        jestClient.execute(bulkIndexBuilder.build());
+        
+
     }
 
     private static Composicao ultimaComposicaoEncontrada = null;
@@ -137,9 +170,10 @@ public class Main {
 	downloadFile(urlFormatada, toFile);
 	unZipIt(toFile, folderTarget + parametros);
 
-	String pathArquivoXLS = folderTarget + parametros + "/SINAPI_Custo_Ref_Composicoes_Sintetico_"
-		+ referencia.getUf().toUpperCase() + "_" + referencia.getAno() + "" + referencia.getMes() + "_"
-		+ referencia.getDesoneracao() + ".xls";
+	String nomeArquivo = "SINAPI_Custo_Ref_Composicoes_Sintetico_" + referencia.getUf().toUpperCase() + "_"
+		+ referencia.getAno() + "" + referencia.getMes() + "_" + referencia.getDesoneracao();
+
+	String pathArquivoXLS = folderTarget + parametros + "/" + nomeArquivo + ".xls";
 
 	System.out.println(pathArquivoXLS);
 
@@ -168,13 +202,13 @@ public class Main {
 
 	    System.out.println("Salvando no ElasticSearch");
 	    saveInElasticSearch(subComposicoes);
-	    System.out.println("Pronto!");
 
 	    /*
-	     * Gson gson = new Gson(); String json = gson.toJson(subComposicoes);
-	     * Files.write(Paths.get( referencia.getUf() + "_" + referencia.getPeriodo() +
-	     * "_" + referencia.getDesoneracao() + ".json" ), json.getBytes());
+	     * try (Writer writer = new FileWriter(nomeArquivo+".json")) { Gson gson = new
+	     * GsonBuilder().create(); gson.toJson(subComposicoes, writer); }
 	     */
+
+	    System.out.println("Pronto!");
 
 	} catch (IOException e) {
 	    System.err.println(e.getMessage());
@@ -265,7 +299,7 @@ public class Main {
 	    subComposicao.setAno(referencia.getAno());
 	    subComposicao.setMes(Integer.parseInt(referencia.getMes()));
 	    subComposicao.setLocalidade(referencia.getUf());
-	    subComposicao.setDesoneracao(referencia.getDesoneracao());
+	    subComposicao.setDesoneracao(referencia.getDesoneracao().startsWith("N") ? "N" : "S");
 	    extrairLinhaComposicaoSintetico(row, subComposicao);
 	    composicoes.add(subComposicao);
 	}
