@@ -10,7 +10,7 @@ public class Composicao implements Serializable {
 
     private String banco;
     private int ano;
-    private int mes;
+    private String mes;
     private String localidade;
     private String desoneracao;
 
@@ -242,11 +242,11 @@ public class Composicao implements Serializable {
         this.ano = ano;
     }
 
-    public int getMes() {
+    public String getMes() {
         return mes;
     }
 
-    public void setMes(int mes) {
+    public void setMes(String mes) {
         this.mes = mes;
     }
 

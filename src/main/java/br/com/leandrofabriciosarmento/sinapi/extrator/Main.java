@@ -57,34 +57,37 @@ public class Main {
     static Pattern patternCodigoSINAPIAntigo = Pattern.compile(regexCodigoSINAPIAntigo);
     static Pattern patternZerosSINAPI = Pattern.compile(regexCodigoSINAPIComZeros);
 
+    static String[] ufs = { /* "AC", "AL", "AP", "AM", 
+					    , */
+	    "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB",
+		"PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+		};
+
     static JestClient jestClient;
+    static Builder bulkIndexBuilder;
 
     public static void main(String[] args) throws JsonIOException, IOException {
 
-	// Construct a new Jest client according to configuration via factory
-	JestClientFactory factory = new JestClientFactory();
-	// BasicCredentialsProvider credentialsProvider = new
-	// BasicCredentialsProvider();
-	// UsernamePasswordCredentials usernamePasswordCredentials = new
-	// UsernamePasswordCredentials("user",
-	// "humtntESDW03");
+	extrair(9, 2017);
 
-	// credentialsProvider.setCredentials(AuthScope.ANY,
-	// usernamePasswordCredentials);
+    }
+
+    private static void initJestClient() {
+
+	JestClientFactory factory = new JestClientFactory();
 
 	factory.setHttpClientConfig(
-		new HttpClientConfig.Builder("http://ec2-18-216-77-189.us-east-2.compute.amazonaws.com:9200")
-			.multiThreaded(true).defaultCredentials("user", "humtntESDW03").build());
-	//
-	// factory.setHttpClientConfig(
-	// new HttpClientConfig.Builder("http://localhost:9200")
-	// .multiThreaded(true)
-	// .build());
+		new HttpClientConfig
+		.Builder("http://ec2-18-216-230-8.us-east-2.compute.amazonaws.com:9200")
+		.multiThreaded(true)
+		.requestCompressionEnabled(true)
+		.defaultCredentials("user", "humtntESDW03")
+		.connTimeout(100000 * 60)
+		.build());
 
 	jestClient = factory.getObject();
 
-	List<Referencia> referencias = extrair(9, 2017);
-
+	bulkIndexBuilder = new Bulk.Builder();
     }
 
     private static final String url = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2009-%s/SINAPI_ref_Insumos_Composicoes_%s.zip";
@@ -92,11 +95,6 @@ public class Main {
     private static List<Referencia> extrair(int mes, int ano) {
 
 	List<Referencia> referencias = new ArrayList<>();
-
-	String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR",
-		"PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO" };
-
-	// String[] ufs = { "AC" };
 
 	String mesAno = String.format("%02d", mes) + ano;
 
@@ -113,6 +111,7 @@ public class Main {
 		referencias.add(referencia);
 
 	    } catch (IOException e) {
+		e.printStackTrace();
 		System.out.println("Falha ao processar o arquivo " + url);
 	    }
 
@@ -137,24 +136,44 @@ public class Main {
     private static void extrair(Referencia referencia) throws IOException {
 
 	parseAnalitico(referencia);
-	saveComposicoesInElasticSearch(referencia);
-
 	// parseSintetico(referencia);
+
+	saveComposicoesInElasticSearch(referencia);
     }
 
     private static void saveComposicoesInElasticSearch(Referencia referencia) throws IOException {
 
+
+	initJestClient();
 	System.out.println("Salvando no ElasticSearch");
-	Builder bulkIndexBuilder = new Bulk.Builder();
+	int count = 0;
 	for (Composicao composicao : referencia.getComposicaos()) {
 
+	    count++;
+
+	    String desonedado = referencia.getDesoneracao().startsWith("N") ? "N" : "S";
+	    String id = composicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf() + desonedado
+		    + referencia.getAno() + referencia.getMes();
 	    composicao.setBanco("SINAPI");
 	    composicao.setAno(referencia.getAno());
-	    composicao.setMes(Integer.parseInt(referencia.getMes()));
+	    composicao.setMes(referencia.getMes());
 	    composicao.setLocalidade(referencia.getUf());
-	    composicao.setDesoneracao(referencia.getDesoneracao().startsWith("N") ? "N" : "S");
-	    bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").build());
+	    composicao.setDesoneracao(desonedado);
+
+	    System.out.println(count + " - " + id);
+
+	    bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").id(id).build());
+	    if ((count % 100) == 0) {
+
+		System.out.println("Salvando no ElasticSearch");
+		jestClient.execute(bulkIndexBuilder.build());
+		bulkIndexBuilder = new Bulk.Builder();
+		System.out.println("Pronto!");
+	    }
+
 	}
+
+	System.out.println("Salvando no ElasticSearch");
 	jestClient.execute(bulkIndexBuilder.build());
 	System.out.println("Pronto!");
 
@@ -164,7 +183,9 @@ public class Main {
 
 	Builder bulkIndexBuilder = new Bulk.Builder();
 	for (SubComposicao composicao : subComposicoes) {
-	    bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").build());
+
+	    String id = composicao.getCodigoComposicao().replaceAll("/", "");
+	    bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").id(id).build());
 	}
 	jestClient.execute(bulkIndexBuilder.build());
 
@@ -259,7 +280,7 @@ public class Main {
 		    continue;
 		}
 		if (logger.isDebugEnabled()) {
-		    //System.out.println((rowIndex + 1) + "\t");
+		    // System.out.println((rowIndex + 1) + "\t");
 		}
 		parceRow(row, referencia);
 
@@ -278,7 +299,7 @@ public class Main {
 	    }
 	}
 
-	//System.out.println(referencia);
+	// System.out.println(referencia);
     }
 
     private static void parceRow(Row row, Referencia referencia) {
@@ -381,14 +402,14 @@ public class Main {
 	    default:
 		break;
 	    }
-	    //System.out.println("\t" + cellValue);
+	    // System.out.println("\t" + cellValue);
 	}
-	//System.out.println("\n");
+	// System.out.println("\n");
     }
 
     private static void extrairLinhaComposicao(Row row, Composicao composicao) {
 
-	//System.out.println("***************************************************");
+	// System.out.println("***************************************************");
 
 	int lastCell = row.getLastCellNum();
 	for (int cellIndex = 0; cellIndex < lastCell; cellIndex++) {
@@ -465,9 +486,9 @@ public class Main {
 	    default:
 		break;
 	    }
-	    //System.out.println("\t" + cellValue);
+	    // System.out.println("\t" + cellValue);
 	}
-	//System.out.println("\n");
+	// System.out.println("\n");
     }
 
     private static String getStringCellValue(Cell cell) {
