@@ -3,9 +3,7 @@ package br.com.leandrofabriciosarmento.sinapi.extrator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -19,18 +17,12 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 
 import br.com.leandrofabriciosarmento.sinapi.extrator.model.Composicao;
@@ -57,8 +49,7 @@ public class Main {
     static Pattern patternCodigoSINAPIAntigo = Pattern.compile(regexCodigoSINAPIAntigo);
     static Pattern patternZerosSINAPI = Pattern.compile(regexCodigoSINAPIComZeros);
 
-    static String[] ufs = { /* "AC", "AL", "AP", "AM", 
-					    , */
+    static String[] ufs = { "AC", "AL", "AP", "AM",
 	    "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB",
 		"PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
 		};
@@ -68,7 +59,7 @@ public class Main {
 
     public static void main(String[] args) throws JsonIOException, IOException {
 
-	extrair(9, 2017);
+	extrair(10, 2017);
 
     }
 
