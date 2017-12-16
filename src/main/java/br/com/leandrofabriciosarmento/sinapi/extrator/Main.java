@@ -3,7 +3,12 @@ package br.com.leandrofabriciosarmento.sinapi.extrator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.Writer;
+import java.lang.reflect.Type;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -11,7 +16,9 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -23,7 +30,11 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
 
 import br.com.leandrofabriciosarmento.sinapi.extrator.model.Composicao;
 import br.com.leandrofabriciosarmento.sinapi.extrator.model.Referencia;
@@ -49,17 +60,15 @@ public class Main {
     static Pattern patternCodigoSINAPIAntigo = Pattern.compile(regexCodigoSINAPIAntigo);
     static Pattern patternZerosSINAPI = Pattern.compile(regexCodigoSINAPIComZeros);
 
-    static String[] ufs = { "AC", "AL", "AP", "AM",
-	    "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB",
-		"PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
-		};
+    static String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB",
+	    "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO" };
 
     static JestClient jestClient;
     static Builder bulkIndexBuilder;
 
     public static void main(String[] args) throws JsonIOException, IOException {
 
-	extrair(10, 2017);
+	extrair(11, 2017);
 
     }
 
@@ -68,13 +77,9 @@ public class Main {
 	JestClientFactory factory = new JestClientFactory();
 
 	factory.setHttpClientConfig(
-		new HttpClientConfig
-		.Builder("http://ec2-18-216-230-8.us-east-2.compute.amazonaws.com:9200")
-		.multiThreaded(true)
-		.requestCompressionEnabled(true)
-		.defaultCredentials("user", "humtntESDW03")
-		.connTimeout(100000 * 60)
-		.build());
+		new HttpClientConfig.Builder("http://ec2-18-216-230-8.us-east-2.compute.amazonaws.com:9200")
+			.multiThreaded(true).requestCompressionEnabled(true).defaultCredentials("user", "humtntESDW03")
+			.connTimeout(100000 * 60).build());
 
 	jestClient = factory.getObject();
 
@@ -129,16 +134,81 @@ public class Main {
 	parseAnalitico(referencia);
 	// parseSintetico(referencia);
 
+	armazenarListaTemporarioInJson(referencia);
 	saveComposicoesInElasticSearch(referencia);
+    }
+
+    private static void armazenarListaTemporarioInJson(Referencia referencia) throws IOException {
+
+	System.out.println("Criando arquivos json.");
+
+	File workDir = new File(
+		System.getProperty("user.home") + "/SINAPI" + referencia.getAno() + referencia.getMes());
+	if (!workDir.exists()) {
+	    workDir.mkdir();
+	}
+
+	for (Composicao composicao : referencia.getComposicaos()) {
+
+	    File ufDir = new File(workDir, referencia.getUf()+"_"+referencia.getDesoneracao());
+	    if (!ufDir.exists()) {
+		ufDir.mkdir();
+		System.out.println(ufDir.getAbsolutePath());
+
+	    }
+
+	    File jsonFile = new File(ufDir, composicao.getCodigoComposicao().replaceAll("/", "")+".json");
+	    File sentFile = new File(ufDir, composicao.getCodigoComposicao().replaceAll("/", "")+".sent");
+	    if(jsonFile.exists() || sentFile.exists()) {
+		continue;
+	    }
+	    try {
+		jsonFile.createNewFile();
+		try (Writer writer = new FileWriter(jsonFile)) {
+		    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		    gson.toJson(composicao, writer);
+		} catch (IOException e) {
+		    e.printStackTrace();
+		}
+	    } catch (IOException e1) {
+		e1.printStackTrace();
+		throw e1;
+	    }
+
+	}
+	System.out.println("Pronto!.");
+
     }
 
     private static void saveComposicoesInElasticSearch(Referencia referencia) throws IOException {
 
-
 	initJestClient();
-	System.out.println("Salvando no ElasticSearch");
+
+	Gson gson = new Gson();
+	Type type = new TypeToken<Composicao>() {
+	}.getType();
+
+	Map<String, Composicao> insumosMap = new HashMap<>();
+
+	File workDir = new File(
+		System.getProperty("user.home") + "/SINAPI" + referencia.getAno() + referencia.getMes());
+	File ufDir = new File(workDir, referencia.getUf()+"_"+referencia.getDesoneracao());
+
+	File[] files = ufDir.listFiles(new FilenameFilter() {
+
+	    @Override
+	    public boolean accept(File dir, String name) {
+		return name.endsWith(".json");
+	    }
+	});
+
 	int count = 0;
-	for (Composicao composicao : referencia.getComposicaos()) {
+	List<File> filesSent = new ArrayList<File>();
+
+	for (File file : files) {
+
+	    JsonReader reader = new JsonReader(new FileReader(file));
+	    Composicao composicao = gson.fromJson(reader, type);
 
 	    count++;
 
@@ -150,37 +220,63 @@ public class Main {
 	    composicao.setMes(referencia.getMes());
 	    composicao.setLocalidade(referencia.getUf());
 	    composicao.setDesoneracao(desonedado);
+	    composicao.setTipoFicha("C");
 
 	    System.out.println(count + " - " + id);
 
 	    bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").id(id).build());
+
+	    for (SubComposicao subComposicao : composicao.getSubComposicaos()) {
+
+		if (subComposicao.getTipo().equals("INSUMO")
+			&& !insumosMap.containsKey(subComposicao.getCodigoComposicao())) {
+
+		    Composicao insumo = new Composicao();
+		    insumo.setBanco(composicao.getBanco());
+		    insumo.setAno(referencia.getAno());
+		    insumo.setMes(referencia.getMes());
+		    insumo.setLocalidade(referencia.getUf());
+		    insumo.setDesoneracao(desonedado);
+		    insumo.setTipoFicha("I");
+		    insumo.setCodigoComposicao(subComposicao.getCodigoComposicao());
+		    insumo.setNomeComposicao(subComposicao.getNomeComposicao());
+		    insumo.setUnidadeMedida(subComposicao.getUnidadeMedida());
+		    insumo.setCustoTotal(subComposicao.getPrecoUnitario());
+
+		    String idInsumo = insumo.getCodigoComposicao().replaceAll("/", "") + referencia.getUf() + desonedado
+			    + referencia.getAno() + referencia.getMes();
+
+		    bulkIndexBuilder
+			    .addAction(new Index.Builder(insumo).index("precos").type("sinapi").id(idInsumo).build());
+		}
+	    }
+
+	    filesSent.add(file);
+
 	    if ((count % 100) == 0) {
 
-		System.out.println("Salvando no ElasticSearch");
-		jestClient.execute(bulkIndexBuilder.build());
-		bulkIndexBuilder = new Bulk.Builder();
-		System.out.println("Pronto!");
+		executarInsertElasticSearch(ufDir, filesSent);
 	    }
 
 	}
 
+	executarInsertElasticSearch(ufDir, filesSent);
+
+    }
+
+    private static void executarInsertElasticSearch(File ufDir, List<File> filesSent) throws IOException {
 	System.out.println("Salvando no ElasticSearch");
 	jestClient.execute(bulkIndexBuilder.build());
-	System.out.println("Pronto!");
+	bulkIndexBuilder = new Bulk.Builder();
+	for (File fileSent : filesSent) {
 
-    }
-
-    private static void saveSubcomposicoesInElasticSearch(List<SubComposicao> subComposicoes) throws IOException {
-
-	Builder bulkIndexBuilder = new Bulk.Builder();
-	for (SubComposicao composicao : subComposicoes) {
-
-	    String id = composicao.getCodigoComposicao().replaceAll("/", "");
-	    bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").id(id).build());
+	    File renamed = new File(ufDir, fileSent.getName().replace("json", "sent"));
+	    fileSent.renameTo(renamed);
 	}
-	jestClient.execute(bulkIndexBuilder.build());
-
+	filesSent = new ArrayList<File>();
+	System.out.println("Pronto!");
     }
+
 
     private static Composicao ultimaComposicaoEncontrada = null;
 
@@ -241,7 +337,8 @@ public class Main {
 
 	String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
 	String path = new File(".").getCanonicalPath();
-	String folderTarget = path + "/target/";
+	String folderTarget = System.getProperty("user.home") + "/SINAPI" + referencia.getAno() + referencia.getMes()
+		+ "/";
 	String toFile = folderTarget + parametros + ".zip";
 
 	downloadFile(urlFormatada, toFile);
@@ -252,7 +349,7 @@ public class Main {
 
 	String pathArquivoXLS = folderTarget + parametros + "/" + nomeArquivo + ".xls";
 
-	System.out.println(pathArquivoXLS);
+	System.out.println("Parse: " + pathArquivoXLS);
 
 	HSSFWorkbook workbook;
 	FileInputStream fileInputStream = null;

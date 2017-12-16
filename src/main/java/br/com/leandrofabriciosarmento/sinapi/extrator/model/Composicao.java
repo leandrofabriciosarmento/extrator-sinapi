@@ -13,6 +13,7 @@ public class Composicao implements Serializable {
     private String mes;
     private String localidade;
     private String desoneracao;
+    private String tipoFicha;
 
     private String nomeClasse;
     private String siglaClasse;
@@ -38,6 +39,14 @@ public class Composicao implements Serializable {
     private String vinculo;
     private List<SubComposicao> subComposicaos = new ArrayList<>();
 
+    public String getTipoFicha() {
+	return tipoFicha;
+    }
+    
+    public void setTipoFicha(String tipoFicha) {
+	this.tipoFicha = tipoFicha;
+    }
+    
     public String getNomeClasse() {
 	return nomeClasse;
     }
