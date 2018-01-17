@@ -68,7 +68,7 @@ public class Main {
 
 	public static void main(String[] args) throws JsonIOException, IOException {
 
-		extrair(11, 2017);
+		extrair(12, 2017);
 
 	}
 
@@ -76,10 +76,9 @@ public class Main {
 
 		JestClientFactory factory = new JestClientFactory();
 
-		factory.setHttpClientConfig(
-				new HttpClientConfig.Builder("http://ec2-18-216-230-8.us-east-2.compute.amazonaws.com:9200")
-						.multiThreaded(true).requestCompressionEnabled(true).defaultCredentials("user", "humtntESDW03")
-						.connTimeout(100000 * 60).build());
+		factory.setHttpClientConfig(new HttpClientConfig.Builder("http://search-precos.sarmentosistemas.com.br:9200")
+				.multiThreaded(true).requestCompressionEnabled(true).defaultCredentials("user", "humtntESDW03")
+				.connTimeout(100000 * 60).build());
 
 		jestClient = factory.getObject();
 
@@ -136,6 +135,8 @@ public class Main {
 
 		// armazenarListaTemporarioInJson(referencia);
 		saveComposicoesInElasticSearch(referencia);
+
+		// renameFiles(referencia);
 	}
 
 	private static void armazenarListaTemporarioInJson(Referencia referencia) throws IOException {
@@ -205,66 +206,75 @@ public class Main {
 		int count = 0;
 		List<File> filesSent = new ArrayList<File>();
 
+		System.out.println(ufDir.getAbsolutePath());
 		try {
-			for (File file : files) {
+			if (files != null) {
+				for (File file : files) {
 
-				JsonReader reader = new JsonReader(new FileReader(file));
-				Composicao composicao = gson.fromJson(reader, type);
+					JsonReader reader = new JsonReader(new FileReader(file));
+					Composicao composicao = gson.fromJson(reader, type);
 
-				count++;
+					count++;
 
-				String desonedado = referencia.getDesoneracao().startsWith("N") ? "N" : "S";
-				String id = composicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf() + desonedado
-						+ referencia.getAno() + referencia.getMes();
-				composicao.setBanco("SINAPI");
-				composicao.setAno(referencia.getAno());
-				composicao.setMes(referencia.getMes());
-				composicao.setLocalidade(referencia.getUf());
-				composicao.setDesoneracao(desonedado);
-				composicao.setTipoFicha("C");
+					String desonedado = referencia.getDesoneracao().startsWith("N") ? "N" : "S";
+					String id = composicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf() + desonedado
+							+ referencia.getAno() + referencia.getMes();
+					composicao.setBanco("SINAPI");
+					composicao.setTemplate("SINAPI");
+					composicao.setAno(referencia.getAno());
+					composicao.setMes(referencia.getMes());
+					composicao.setLocalidade(referencia.getUf());
+					composicao.setDesoneracao(desonedado);
+					composicao.setTipoFicha("C");
 
-				System.out.println(count + "/" + files.length + " - " + id);
+					System.out.println(count + "/" + files.length + " - " + id);
 
-				bulkIndexBuilder.addAction(new Index.Builder(composicao).index("precos").type("sinapi").id(id).build());
+					bulkIndexBuilder
+							.addAction(new Index.Builder(composicao).index("precos").type("sinapi").id(id).build());
 
-				for (SubComposicao subComposicao : composicao.getSubComposicaos()) {
+					for (SubComposicao subComposicao : composicao.getSubComposicaos()) {
 
-					if (subComposicao.getTipo().equals("INSUMO")
-							&& !insumosMap.containsKey(subComposicao.getCodigoComposicao())) {
+						if (subComposicao.getTipo().equals("INSUMO")
+								&& !insumosMap.containsKey(subComposicao.getCodigoComposicao())) {
 
-						Composicao insumo = new Composicao();
-						insumo.setBanco(composicao.getBanco());
-						insumo.setAno(referencia.getAno());
-						insumo.setMes(referencia.getMes());
-						insumo.setLocalidade(referencia.getUf());
-						insumo.setDesoneracao(desonedado);
-						insumo.setTipoFicha("I");
-						insumo.setCodigoComposicao(subComposicao.getCodigoComposicao());
-						insumo.setNomeComposicao(subComposicao.getNomeComposicao());
-						insumo.setUnidadeMedida(subComposicao.getUnidadeMedida());
-						insumo.setCustoTotal(subComposicao.getPrecoUnitario());
+							Composicao insumo = new Composicao();
+							String idGenerico = "SINAPI" + composicao.getCodigoComposicao().replaceAll("/", "")
+									+ referencia.getUf() + desonedado;
+							insumo.setIdGenerico(idGenerico);
+							insumo.setBanco(composicao.getBanco());
+							insumo.setTemplate(composicao.getTemplate());
+							insumo.setAno(referencia.getAno());
+							insumo.setMes(referencia.getMes());
+							insumo.setLocalidade(referencia.getUf());
+							insumo.setDesoneracao(desonedado);
+							insumo.setTipoFicha("I");
+							insumo.setCodigoComposicao(subComposicao.getCodigoComposicao());
+							insumo.setNomeComposicao(subComposicao.getNomeComposicao());
+							insumo.setUnidadeMedida(subComposicao.getUnidadeMedida());
+							insumo.setCustoTotal(subComposicao.getPrecoUnitario());
 
-						String idInsumo = insumo.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
-								+ desonedado + referencia.getAno() + referencia.getMes();
+							String idInsumo = insumo.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
+									+ desonedado + referencia.getAno() + referencia.getMes();
 
-						bulkIndexBuilder.addAction(
-								new Index.Builder(insumo).index("precos").type("sinapi").id(idInsumo).build());
+							bulkIndexBuilder.addAction(
+									new Index.Builder(insumo).index("precos").type("sinapi").id(idInsumo).build());
+						}
 					}
+
+					filesSent.add(file);
+
+					if ((count % 100) == 0) {
+
+						executarInsertElasticSearch(ufDir, filesSent);
+					}
+
 				}
 
-				filesSent.add(file);
-
-				if ((count % 100) == 0) {
-
-					executarInsertElasticSearch(ufDir, filesSent);
-				}
-
+				executarInsertElasticSearch(ufDir, filesSent);
 			}
 
-			executarInsertElasticSearch(ufDir, filesSent);
-			
 		} catch (java.net.SocketTimeoutException e) {
-			
+
 			saveComposicoesInElasticSearch(referencia);
 		}
 
@@ -405,8 +415,10 @@ public class Main {
 
 		if (linhaComposicao) {
 			ultimaComposicaoEncontrada = new Composicao();
+			ultimaComposicaoEncontrada.setAno(referencia.getAno());
+			ultimaComposicaoEncontrada.setMes(referencia.getMes());
 			referencia.addComposicaos(ultimaComposicaoEncontrada);
-			extrairLinhaComposicao(row, ultimaComposicaoEncontrada);
+			extrairLinhaComposicao(row, ultimaComposicaoEncontrada, referencia);
 		} else if (linhaSubComposicao) {
 			SubComposicao subComposicao = new SubComposicao();
 			ultimaComposicaoEncontrada.addSubComposicaos(subComposicao);
@@ -500,7 +512,7 @@ public class Main {
 		// System.out.println("\n");
 	}
 
-	private static void extrairLinhaComposicao(Row row, Composicao composicao) {
+	private static void extrairLinhaComposicao(Row row, Composicao composicao, Referencia referencia) {
 
 		// System.out.println("***************************************************");
 
@@ -530,6 +542,10 @@ public class Main {
 				break;
 			case 6:
 				composicao.setCodigoComposicao(cellValue);
+				String desonedado = referencia.getDesoneracao().startsWith("N") ? "N" : "S";
+				String id = "SINAPI" + composicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
+						+ desonedado;
+				composicao.setIdGenerico(id);
 				break;
 			case 7:
 				composicao.setNomeComposicao(cellValue);
@@ -700,6 +716,30 @@ public class Main {
 			}
 			if (fileInputStream != null) {
 				fileInputStream.close();
+			}
+		}
+	}
+
+	private static void renameFiles(Referencia referencia) {
+
+		File workDir = new File(
+				System.getProperty("user.home") + "/SINAPI" + referencia.getAno() + referencia.getMes());
+		File ufDir = new File(workDir, referencia.getUf() + "_" + referencia.getDesoneracao());
+
+		File[] files = ufDir.listFiles(new FilenameFilter() {
+
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".sent");
+			}
+		});
+
+		for (File file : files) {
+			File renamed = new File(file.getAbsolutePath().replace("sent", "json"));
+			if (!file.renameTo(renamed)) {
+				System.err.println(file.getAbsolutePath() + " não renomeado.");
+			} else {
+				System.out.println(file.getAbsolutePath() + " renomeado.");
 			}
 		}
 	}

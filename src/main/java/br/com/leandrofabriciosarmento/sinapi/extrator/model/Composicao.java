@@ -6,274 +6,290 @@ import java.util.List;
 
 public class Composicao implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    private String banco;
-    private int ano;
-    private String mes;
-    private String localidade;
-    private String desoneracao;
-    private String tipoFicha;
+	private String idGenerico;
+	private String template;
+	private String banco;
+	private int ano;
+	private String mes;
+	private String localidade;
+	private String desoneracao;
+	private String tipoFicha;
 
-    private String nomeClasse;
-    private String siglaClasse;
-    private String nomeTipo;
-    private String siglaTipo;
-    private String nomeAgrupador;
-    private String codigoAgrupador;
-    private String nomeComposicao;
-    private String codigoComposicao;
-    private String unidadeMedida;
-    private String origemPreco;
-    private String custoTotal;
-    private String custoMaoDeObra;
-    private String percentualMaoDeObra;
-    private String custoMaterial;
-    private String percentualMaterial;
-    private String custoEquipamento;
-    private String percentualEquipamento;
-    private String custoServicoTerceiro;
-    private String percentualServicoTerceiro;
-    private String custoOutros;
-    private String percentualOutros;
-    private String vinculo;
-    private List<SubComposicao> subComposicaos = new ArrayList<>();
+	private String nomeClasse;
+	private String siglaClasse;
+	private String nomeTipo;
+	private String siglaTipo;
+	private String nomeAgrupador;
+	private String codigoAgrupador;
+	private String nomeComposicao;
+	private String codigoComposicao;
+	private String unidadeMedida;
+	private String origemPreco;
+	private String custoTotal;
+	private String custoMaoDeObra;
+	private String percentualMaoDeObra;
+	private String custoMaterial;
+	private String percentualMaterial;
+	private String custoEquipamento;
+	private String percentualEquipamento;
+	private String custoServicoTerceiro;
+	private String percentualServicoTerceiro;
+	private String custoOutros;
+	private String percentualOutros;
+	private String vinculo;
+	private List<SubComposicao> subComposicaos = new ArrayList<>();
 
-    public String getTipoFicha() {
-	return tipoFicha;
-    }
-    
-    public void setTipoFicha(String tipoFicha) {
-	this.tipoFicha = tipoFicha;
-    }
-    
-    public String getNomeClasse() {
-	return nomeClasse;
-    }
+	public String getIdGenerico() {
+		return idGenerico;
+	}
 
-    public void setNomeClasse(String nomeClasse) {
-	this.nomeClasse = nomeClasse;
-    }
+	public void setIdGenerico(String idGenerico) {
+		this.idGenerico = idGenerico;
+	}
 
-    public String getSiglaClasse() {
-	return siglaClasse;
-    }
+	public String getTipoFicha() {
+		return tipoFicha;
+	}
 
-    public void setSiglaClasse(String siglaClasse) {
-	this.siglaClasse = siglaClasse;
-    }
+	public void setTipoFicha(String tipoFicha) {
+		this.tipoFicha = tipoFicha;
+	}
 
-    public String getNomeTipo() {
-	return nomeTipo;
-    }
+	public String getNomeClasse() {
+		return nomeClasse;
+	}
 
-    public void setNomeTipo(String nomeTipo) {
-	this.nomeTipo = nomeTipo;
-    }
+	public void setNomeClasse(String nomeClasse) {
+		this.nomeClasse = nomeClasse;
+	}
 
-    public String getSiglaTipo() {
-	return siglaTipo;
-    }
+	public String getSiglaClasse() {
+		return siglaClasse;
+	}
 
-    public void setSiglaTipo(String siglaTipo) {
-	this.siglaTipo = siglaTipo;
-    }
+	public void setSiglaClasse(String siglaClasse) {
+		this.siglaClasse = siglaClasse;
+	}
 
-    public String getNomeAgrupador() {
-	return nomeAgrupador;
-    }
+	public String getNomeTipo() {
+		return nomeTipo;
+	}
 
-    public void setNomeAgrupador(String nomeAgrupador) {
-	this.nomeAgrupador = nomeAgrupador;
-    }
+	public void setNomeTipo(String nomeTipo) {
+		this.nomeTipo = nomeTipo;
+	}
 
-    public String getCodigoAgrupador() {
-	return codigoAgrupador;
-    }
+	public String getSiglaTipo() {
+		return siglaTipo;
+	}
 
-    public void setCodigoAgrupador(String codigoAgrupador) {
-	this.codigoAgrupador = codigoAgrupador;
-    }
+	public void setSiglaTipo(String siglaTipo) {
+		this.siglaTipo = siglaTipo;
+	}
 
-    public String getNomeComposicao() {
-	return nomeComposicao;
-    }
+	public String getNomeAgrupador() {
+		return nomeAgrupador;
+	}
 
-    public void setNomeComposicao(String nomeComposicao) {
-	this.nomeComposicao = nomeComposicao;
-    }
+	public void setNomeAgrupador(String nomeAgrupador) {
+		this.nomeAgrupador = nomeAgrupador;
+	}
 
-    public String getCodigoComposicao() {
-	return codigoComposicao;
-    }
+	public String getCodigoAgrupador() {
+		return codigoAgrupador;
+	}
 
-    public void setCodigoComposicao(String codigoComposicao) {
-	this.codigoComposicao = codigoComposicao;
-    }
+	public void setCodigoAgrupador(String codigoAgrupador) {
+		this.codigoAgrupador = codigoAgrupador;
+	}
 
-    public String getUnidadeMedida() {
-	return unidadeMedida;
-    }
+	public String getNomeComposicao() {
+		return nomeComposicao;
+	}
 
-    public void setUnidadeMedida(String unidadeMedida) {
-	this.unidadeMedida = unidadeMedida;
-    }
+	public void setNomeComposicao(String nomeComposicao) {
+		this.nomeComposicao = nomeComposicao;
+	}
 
-    public String getOrigemPreco() {
-	return origemPreco;
-    }
+	public String getCodigoComposicao() {
+		return codigoComposicao;
+	}
 
-    public void setOrigemPreco(String origemPreco) {
-	this.origemPreco = origemPreco;
-    }
+	public void setCodigoComposicao(String codigoComposicao) {
+		this.codigoComposicao = codigoComposicao;
+	}
 
-    public String getCustoTotal() {
-	return custoTotal;
-    }
+	public String getUnidadeMedida() {
+		return unidadeMedida;
+	}
 
-    public void setCustoTotal(String custoTotal) {
-	this.custoTotal = custoTotal;
-    }
+	public void setUnidadeMedida(String unidadeMedida) {
+		this.unidadeMedida = unidadeMedida;
+	}
 
-    public String getCustoMaoDeObra() {
-	return custoMaoDeObra;
-    }
+	public String getOrigemPreco() {
+		return origemPreco;
+	}
 
-    public void setCustoMaoDeObra(String custoMaoDeObra) {
-	this.custoMaoDeObra = custoMaoDeObra;
-    }
+	public void setOrigemPreco(String origemPreco) {
+		this.origemPreco = origemPreco;
+	}
 
-    public String getPercentualMaoDeObra() {
-	return percentualMaoDeObra;
-    }
+	public String getCustoTotal() {
+		return custoTotal;
+	}
 
-    public void setPercentualMaoDeObra(String percentualMaoDeObra) {
-	this.percentualMaoDeObra = percentualMaoDeObra;
-    }
+	public void setCustoTotal(String custoTotal) {
+		this.custoTotal = custoTotal;
+	}
 
-    public String getCustoMaterial() {
-	return custoMaterial;
-    }
+	public String getCustoMaoDeObra() {
+		return custoMaoDeObra;
+	}
 
-    public void setCustoMaterial(String custoMaterial) {
-	this.custoMaterial = custoMaterial;
-    }
+	public void setCustoMaoDeObra(String custoMaoDeObra) {
+		this.custoMaoDeObra = custoMaoDeObra;
+	}
 
-    public String getPercentualMaterial() {
-	return percentualMaterial;
-    }
+	public String getPercentualMaoDeObra() {
+		return percentualMaoDeObra;
+	}
 
-    public void setPercentualMaterial(String percentualMaterial) {
-	this.percentualMaterial = percentualMaterial;
-    }
+	public void setPercentualMaoDeObra(String percentualMaoDeObra) {
+		this.percentualMaoDeObra = percentualMaoDeObra;
+	}
 
-    public String getCustoEquipamento() {
-	return custoEquipamento;
-    }
+	public String getCustoMaterial() {
+		return custoMaterial;
+	}
 
-    public void setCustoEquipamento(String custoEquipamento) {
-	this.custoEquipamento = custoEquipamento;
-    }
+	public void setCustoMaterial(String custoMaterial) {
+		this.custoMaterial = custoMaterial;
+	}
 
-    public String getPercentualEquipamento() {
-	return percentualEquipamento;
-    }
+	public String getPercentualMaterial() {
+		return percentualMaterial;
+	}
 
-    public void setPercentualEquipamento(String percentualEquipamento) {
-	this.percentualEquipamento = percentualEquipamento;
-    }
+	public void setPercentualMaterial(String percentualMaterial) {
+		this.percentualMaterial = percentualMaterial;
+	}
 
-    public String getCustoServicoTerceiro() {
-	return custoServicoTerceiro;
-    }
+	public String getCustoEquipamento() {
+		return custoEquipamento;
+	}
 
-    public void setCustoServicoTerceiro(String custoServicoTerceiro) {
-	this.custoServicoTerceiro = custoServicoTerceiro;
-    }
+	public void setCustoEquipamento(String custoEquipamento) {
+		this.custoEquipamento = custoEquipamento;
+	}
 
-    public String getPercentualServicoTerceiro() {
-	return percentualServicoTerceiro;
-    }
+	public String getPercentualEquipamento() {
+		return percentualEquipamento;
+	}
 
-    public void setPercentualServicoTerceiro(String percentualServicoTerceiro) {
-	this.percentualServicoTerceiro = percentualServicoTerceiro;
-    }
+	public void setPercentualEquipamento(String percentualEquipamento) {
+		this.percentualEquipamento = percentualEquipamento;
+	}
 
-    public String getCustoOutros() {
-	return custoOutros;
-    }
+	public String getCustoServicoTerceiro() {
+		return custoServicoTerceiro;
+	}
 
-    public void setCustoOutros(String custoOutros) {
-	this.custoOutros = custoOutros;
-    }
+	public void setCustoServicoTerceiro(String custoServicoTerceiro) {
+		this.custoServicoTerceiro = custoServicoTerceiro;
+	}
 
-    public String getPercentualOutros() {
-	return percentualOutros;
-    }
+	public String getPercentualServicoTerceiro() {
+		return percentualServicoTerceiro;
+	}
 
-    public void setPercentualOutros(String percentualOutros) {
-	this.percentualOutros = percentualOutros;
-    }
+	public void setPercentualServicoTerceiro(String percentualServicoTerceiro) {
+		this.percentualServicoTerceiro = percentualServicoTerceiro;
+	}
 
-    public String getVinculo() {
-	return vinculo;
-    }
+	public String getCustoOutros() {
+		return custoOutros;
+	}
 
-    public void setVinculo(String vinculo) {
-	this.vinculo = vinculo;
-    }
+	public void setCustoOutros(String custoOutros) {
+		this.custoOutros = custoOutros;
+	}
 
-    public List<SubComposicao> getSubComposicaos() {
-	return subComposicaos;
-    }
+	public String getPercentualOutros() {
+		return percentualOutros;
+	}
 
-    public void setSubComposicaos(List<SubComposicao> subComposicaos) {
-	this.subComposicaos = subComposicaos;
-    }
+	public void setPercentualOutros(String percentualOutros) {
+		this.percentualOutros = percentualOutros;
+	}
 
-    public void addSubComposicaos(SubComposicao subComposicao) {
-	this.subComposicaos.add(subComposicao);
-    }
+	public String getVinculo() {
+		return vinculo;
+	}
 
-    public String getBanco() {
-        return banco;
-    }
+	public void setVinculo(String vinculo) {
+		this.vinculo = vinculo;
+	}
 
-    public void setBanco(String banco) {
-        this.banco = banco;
-    }
+	public List<SubComposicao> getSubComposicaos() {
+		return subComposicaos;
+	}
 
-    public int getAno() {
-        return ano;
-    }
+	public void setSubComposicaos(List<SubComposicao> subComposicaos) {
+		this.subComposicaos = subComposicaos;
+	}
 
-    public void setAno(int ano) {
-        this.ano = ano;
-    }
+	public void addSubComposicaos(SubComposicao subComposicao) {
+		this.subComposicaos.add(subComposicao);
+	}
 
-    public String getMes() {
-        return mes;
-    }
+	public String getBanco() {
+		return banco;
+	}
 
-    public void setMes(String mes) {
-        this.mes = mes;
-    }
+	public void setBanco(String banco) {
+		this.banco = banco;
+	}
 
-    public String getLocalidade() {
-        return localidade;
-    }
+	public int getAno() {
+		return ano;
+	}
 
-    public void setLocalidade(String localidade) {
-        this.localidade = localidade;
-    }
+	public void setAno(int ano) {
+		this.ano = ano;
+	}
 
-    public String getDesoneracao() {
-        return desoneracao;
-    }
+	public String getMes() {
+		return mes;
+	}
 
-    public void setDesoneracao(String desoneracao) {
-        this.desoneracao = desoneracao;
-    }
-    
-    
+	public void setMes(String mes) {
+		this.mes = mes;
+	}
+
+	public String getLocalidade() {
+		return localidade;
+	}
+
+	public void setLocalidade(String localidade) {
+		this.localidade = localidade;
+	}
+
+	public String getDesoneracao() {
+		return desoneracao;
+	}
+
+	public void setDesoneracao(String desoneracao) {
+		this.desoneracao = desoneracao;
+	}
+
+	public String getTemplate() {
+		return template;
+	}
+
+	public void setTemplate(String template) {
+		this.template = template;
+	}
 }
