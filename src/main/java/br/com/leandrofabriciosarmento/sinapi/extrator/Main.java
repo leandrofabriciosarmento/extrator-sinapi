@@ -131,12 +131,12 @@ public class Main {
 	private static void extrair(Referencia referencia) throws IOException {
 
 		parseAnalitico(referencia);
+		//renameFiles(referencia);
 		// parseSintetico(referencia);
 
 		// armazenarListaTemporarioInJson(referencia);
 		saveComposicoesInElasticSearch(referencia);
 
-		// renameFiles(referencia);
 	}
 
 	private static void armazenarListaTemporarioInJson(Referencia referencia) throws IOException {
@@ -213,7 +213,8 @@ public class Main {
 
 					JsonReader reader = new JsonReader(new FileReader(file));
 					Composicao composicao = gson.fromJson(reader, type);
-
+					reader.close();
+					
 					count++;
 
 					String desonedado = referencia.getDesoneracao().startsWith("N") ? "N" : "S";
