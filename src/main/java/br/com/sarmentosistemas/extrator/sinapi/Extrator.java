@@ -1,4 +1,4 @@
-package br.com.leandrofabriciosarmento.sinapi.extrator;
+package br.com.sarmentosistemas.extrator.sinapi;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,9 +36,9 @@ import com.google.gson.JsonIOException;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
-import br.com.leandrofabriciosarmento.sinapi.extrator.model.Composicao;
-import br.com.leandrofabriciosarmento.sinapi.extrator.model.Referencia;
-import br.com.leandrofabriciosarmento.sinapi.extrator.model.SubComposicao;
+import br.com.leandrofabriciosarmento.extrator.sinapi.model.Composicao;
+import br.com.leandrofabriciosarmento.extrator.sinapi.model.Referencia;
+import br.com.leandrofabriciosarmento.extrator.sinapi.model.SubComposicao;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.config.HttpClientConfig;
@@ -46,9 +46,7 @@ import io.searchbox.core.Bulk;
 import io.searchbox.core.Bulk.Builder;
 import io.searchbox.core.Index;
 
-public class Main {
-
-	final static Logger logger = Logger.getLogger(Main.class);
+public class Extrator {
 
 	static String regexCodigoSINAPI = "\\d{4,5}/[0]{0,2}\\d{1,2}|\\d{4,5}";
 	static String regexCodigoSINAPIAntigo = "\\d{1,}/[0]{1,2}\\d{1,2}";
@@ -66,9 +64,12 @@ public class Main {
 	static JestClient jestClient;
 	static Builder bulkIndexBuilder;
 
-	public static void main(String[] args) throws JsonIOException, IOException {
+	final static Logger logger = Logger.getLogger(Extrator.class);
 
-		extrair(12, 2017);
+	public static void executar(int mes, int ano, boolean renameFiles, boolean armazenarJson,
+			boolean enviarElastiSearch) throws JsonIOException, IOException {
+
+		extrair(mes, ano, renameFiles, armazenarJson, enviarElastiSearch);
 
 	}
 
@@ -87,7 +88,8 @@ public class Main {
 
 	private static final String url = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2009-%s/SINAPI_ref_Insumos_Composicoes_%s.zip";
 
-	private static List<Referencia> extrair(int mes, int ano) {
+	private static List<Referencia> extrair(int mes, int ano, boolean renameFiles, boolean armazenarJson,
+			boolean enviarElastiSearch) {
 
 		List<Referencia> referencias = new ArrayList<>();
 
@@ -102,7 +104,7 @@ public class Main {
 				referencia.setMes(String.format("%02d", mes));
 				referencia.setAno(ano);
 				referencia.setPeriodo(mesAno);
-				extrair(referencia);
+				extrair(referencia, renameFiles, armazenarJson, enviarElastiSearch);
 				referencias.add(referencia);
 
 			} catch (IOException e) {
@@ -117,7 +119,7 @@ public class Main {
 				referencia.setMes(String.format("%02d", mes));
 				referencia.setAno(ano);
 				referencia.setPeriodo(mesAno);
-				extrair(referencia);
+				extrair(referencia, renameFiles, armazenarJson, enviarElastiSearch);
 				referencias.add(referencia);
 			} catch (IOException e) {
 
@@ -128,15 +130,22 @@ public class Main {
 		return referencias;
 	}
 
-	private static void extrair(Referencia referencia) throws IOException {
+	private static void extrair(Referencia referencia, boolean renameFiles, boolean armazenarJson,
+			boolean enviarElastiSearch) throws IOException {
 
 		parseAnalitico(referencia);
-		//renameFiles(referencia);
+		if (renameFiles) {
+			renameFiles(referencia);
+		}
 		// parseSintetico(referencia);
 
-		// armazenarListaTemporarioInJson(referencia);
-		saveComposicoesInElasticSearch(referencia);
+		if (armazenarJson) {
+			armazenarListaTemporarioInJson(referencia);
+		}
 
+		if (enviarElastiSearch) {
+			saveComposicoesInElasticSearch(referencia);
+		}
 	}
 
 	private static void armazenarListaTemporarioInJson(Referencia referencia) throws IOException {
@@ -214,7 +223,7 @@ public class Main {
 					JsonReader reader = new JsonReader(new FileReader(file));
 					Composicao composicao = gson.fromJson(reader, type);
 					reader.close();
-					
+
 					count++;
 
 					String desonedado = referencia.getDesoneracao().startsWith("N") ? "N" : "S";
@@ -296,7 +305,7 @@ public class Main {
 
 	private static Composicao ultimaComposicaoEncontrada = null;
 
-	public static void parseSintetico(Referencia referencia) throws IOException {
+	private static void parseSintetico(Referencia referencia) throws IOException {
 
 		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
 
@@ -347,7 +356,7 @@ public class Main {
 		}
 	}
 
-	public static void parseAnalitico(Referencia referencia) throws IOException {
+	private static void parseAnalitico(Referencia referencia) throws IOException {
 
 		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
 
@@ -657,7 +666,7 @@ public class Main {
 	 *            zip file output folder
 	 * @throws IOException
 	 */
-	public static void unZipIt(String zipFile, String outputFolder) throws IOException {
+	private static void unZipIt(String zipFile, String outputFolder) throws IOException {
 
 		FileOutputStream fos = null;
 		FileInputStream fileInputStream = null;

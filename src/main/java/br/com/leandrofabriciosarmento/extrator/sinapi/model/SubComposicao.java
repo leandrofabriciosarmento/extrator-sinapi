@@ -1,4 +1,4 @@
-package br.com.leandrofabriciosarmento.sinapi.extrator.model;
+package br.com.leandrofabriciosarmento.extrator.sinapi.model;
 
 import java.io.Serializable;
 
