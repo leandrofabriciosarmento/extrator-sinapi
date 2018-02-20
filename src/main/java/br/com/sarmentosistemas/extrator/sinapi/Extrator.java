@@ -36,9 +36,9 @@ import com.google.gson.JsonIOException;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
-import br.com.leandrofabriciosarmento.extrator.sinapi.model.Composicao;
-import br.com.leandrofabriciosarmento.extrator.sinapi.model.Referencia;
-import br.com.leandrofabriciosarmento.extrator.sinapi.model.SubComposicao;
+import br.com.sarmentosistemas.extrator.sinapi.model.Composicao;
+import br.com.sarmentosistemas.extrator.sinapi.model.Referencia;
+import br.com.sarmentosistemas.extrator.sinapi.model.SubComposicao;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.config.HttpClientConfig;
@@ -137,7 +137,6 @@ public class Extrator {
 		if (renameFiles) {
 			renameFiles(referencia);
 		}
-		// parseSintetico(referencia);
 
 		if (armazenarJson) {
 			armazenarListaTemporarioInJson(referencia);
@@ -248,7 +247,7 @@ public class Extrator {
 								&& !insumosMap.containsKey(subComposicao.getCodigoComposicao())) {
 
 							Composicao insumo = new Composicao();
-							String idGenerico = "SINAPI" + composicao.getCodigoComposicao().replaceAll("/", "")
+							String idGenerico = "SINAPI" + subComposicao.getCodigoComposicao().replaceAll("/", "")
 									+ referencia.getUf() + desonedado;
 							insumo.setIdGenerico(idGenerico);
 							insumo.setBanco(composicao.getBanco());
@@ -305,63 +304,12 @@ public class Extrator {
 
 	private static Composicao ultimaComposicaoEncontrada = null;
 
-	private static void parseSintetico(Referencia referencia) throws IOException {
-
-		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
-
-		String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
-		String path = new File(".").getCanonicalPath();
-		String folderTarget = path + "/target/";
-		String toFile = folderTarget + parametros + ".zip";
-
-		downloadFile(urlFormatada, toFile);
-		unZipIt(toFile, folderTarget + parametros);
-
-		String nomeArquivo = "SINAPI_Custo_Ref_Composicoes_Sintetico_" + referencia.getUf().toUpperCase() + "_"
-				+ referencia.getAno() + "" + referencia.getMes() + "_" + referencia.getDesoneracao();
-
-		String pathArquivoXLS = folderTarget + parametros + "/" + nomeArquivo + ".xls";
-
-		System.out.println(pathArquivoXLS);
-
-		HSSFWorkbook workbook;
-		FileInputStream fileInputStream = null;
-
-		try {
-			fileInputStream = new FileInputStream(pathArquivoXLS);
-			workbook = new HSSFWorkbook(fileInputStream);
-
-			HSSFSheet sheet = workbook.getSheetAt(0);
-
-			List<SubComposicao> subComposicoes = new ArrayList<>();
-
-			for (int rowIndex = 5; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
-
-				Row row = sheet.getRow(rowIndex);
-
-				if (row == null) {
-					continue;
-				}
-				parceRowSintetico(row, referencia, subComposicoes);
-
-			}
-			workbook.close();
-
-		} catch (IOException e) {
-			System.err.println(e.getMessage());
-		} finally {
-			if (fileInputStream != null) {
-				fileInputStream.close();
-			}
-		}
-	}
-
 	private static void parseAnalitico(Referencia referencia) throws IOException {
 
 		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
 
 		String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
-		String path = new File(".").getCanonicalPath();
+
 		String folderTarget = System.getProperty("user.home") + "/SINAPI" + referencia.getAno() + referencia.getMes()
 				+ "/";
 		String toFile = folderTarget + parametros + ".zip";
@@ -433,56 +381,10 @@ public class Extrator {
 			SubComposicao subComposicao = new SubComposicao();
 			ultimaComposicaoEncontrada.addSubComposicaos(subComposicao);
 			extrairLinhaSubComposicao(row, subComposicao);
+			String idGenerico = "SINAPI" + subComposicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
+					+ ultimaComposicaoEncontrada.getDesoneracao();
+			subComposicao.setIdGenerico(idGenerico);
 		}
-	}
-
-	private static void parceRowSintetico(Row row, Referencia referencia, List<SubComposicao> composicoes) {
-
-		Matcher matcher = patternCodigoSINAPI.matcher(getStringCellValue(row.getCell(6)));
-		boolean linhaSubComposicao = matcher.find();
-
-		if (linhaSubComposicao) {
-			SubComposicao subComposicao = new SubComposicao();
-			subComposicao.setBanco("SINAPI");
-			subComposicao.setAno(referencia.getAno());
-			subComposicao.setMes(Integer.parseInt(referencia.getMes()));
-			subComposicao.setLocalidade(referencia.getUf());
-			subComposicao.setDesoneracao(referencia.getDesoneracao().startsWith("N") ? "N" : "S");
-			extrairLinhaComposicaoSintetico(row, subComposicao);
-			composicoes.add(subComposicao);
-		}
-
-	}
-
-	private static void extrairLinhaComposicaoSintetico(Row row, SubComposicao subComposicao) {
-
-		int lastCell = row.getLastCellNum();
-		for (int cellIndex = 0; cellIndex < lastCell; cellIndex++) {
-			Cell cell = row.getCell(cellIndex);
-			String cellValue = getStringCellValue(cell);
-
-			// System.out.println("\t" + cellValue);
-
-			switch (cellIndex) {
-			case 6:
-				subComposicao.setCodigoComposicao(cellValue);
-				break;
-			case 7:
-				subComposicao.setNomeComposicao(cellValue);
-				break;
-			case 8:
-				subComposicao.setUnidadeMedida(cellValue);
-				break;
-			case 10:
-				subComposicao.setPrecoUnitario(cellValue);
-				break;
-			default:
-				break;
-			}
-			// System.out.println("\t" + cellValue);
-
-		}
-		// System.out.println("\n");
 	}
 
 	private static void extrairLinhaSubComposicao(Row row, SubComposicao subComposicao) {
@@ -553,9 +455,9 @@ public class Extrator {
 			case 6:
 				composicao.setCodigoComposicao(cellValue);
 				String desonedado = referencia.getDesoneracao().startsWith("N") ? "N" : "S";
-				String id = "SINAPI" + composicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
+				String idGenerico = "SINAPI" + composicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
 						+ desonedado;
-				composicao.setIdGenerico(id);
+				composicao.setIdGenerico(idGenerico);
 				break;
 			case 7:
 				composicao.setNomeComposicao(cellValue);
@@ -744,12 +646,14 @@ public class Extrator {
 			}
 		});
 
-		for (File file : files) {
-			File renamed = new File(file.getAbsolutePath().replace("sent", "json"));
-			if (!file.renameTo(renamed)) {
-				System.err.println(file.getAbsolutePath() + " não renomeado.");
-			} else {
-				System.out.println(file.getAbsolutePath() + " renomeado.");
+		if (files != null && files.length > 0) {
+			for (File file : files) {
+				File renamed = new File(file.getAbsolutePath().replace("sent", "json"));
+				if (!file.renameTo(renamed)) {
+					System.err.println(file.getAbsolutePath() + " não renomeado.");
+				} else {
+					System.out.println(file.getAbsolutePath() + " renomeado.");
+				}
 			}
 		}
 	}

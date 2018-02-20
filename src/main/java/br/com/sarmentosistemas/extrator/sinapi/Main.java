@@ -8,8 +8,8 @@ public class Main {
 
 	public static void main(String[] args) throws JsonIOException, IOException {
 		boolean renameFiles = false;
-		boolean armazenarJson = false;
-		boolean enviarElastiSearch = false;
+		boolean armazenarJson = true;
+		boolean enviarElastiSearch = true;
 		Extrator.executar(12, 2017, renameFiles, armazenarJson, enviarElastiSearch);
 	}
 }
