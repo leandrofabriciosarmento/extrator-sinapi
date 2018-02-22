@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -46,34 +47,56 @@ import io.searchbox.core.Bulk;
 import io.searchbox.core.Bulk.Builder;
 import io.searchbox.core.Index;
 
-public class Extrator {
+public class Extrator implements Callable<Referencia>{
 
-	static String regexCodigoSINAPI = "\\d{4,5}/[0]{0,2}\\d{1,2}|\\d{4,5}";
-	static String regexCodigoSINAPIAntigo = "\\d{1,}/[0]{1,2}\\d{1,2}";
-	static String regexCodigoSINAPIComZeros = "/[0]{1,2}";
+	 String regexCodigoSINAPI = "\\d{4,5}/[0]{0,2}\\d{1,2}|\\d{4,5}";
+	 String regexCodigoSINAPIAntigo = "\\d{1,}/[0]{1,2}\\d{1,2}";
+	 String regexCodigoSINAPIComZeros = "/[0]{1,2}";
 
-	static String regexCodigoSBC = "\\d{6}";
+	 String regexCodigoSBC = "\\d{6}";
 
-	static Pattern patternCodigoSINAPI = Pattern.compile(regexCodigoSINAPI);
-	static Pattern patternCodigoSINAPIAntigo = Pattern.compile(regexCodigoSINAPIAntigo);
-	static Pattern patternZerosSINAPI = Pattern.compile(regexCodigoSINAPIComZeros);
+	 Pattern patternCodigoSINAPI = Pattern.compile(regexCodigoSINAPI);
+	 Pattern patternCodigoSINAPIAntigo = Pattern.compile(regexCodigoSINAPIAntigo);
+	 Pattern patternZerosSINAPI = Pattern.compile(regexCodigoSINAPIComZeros);
 
-	static String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB",
+	 String[] ufs = { "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB",
 			"PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO" };
 
-	static JestClient jestClient;
-	static Builder bulkIndexBuilder;
+	 static JestClient jestClient;
+	 static Builder bulkIndexBuilder;
 
-	final static Logger logger = Logger.getLogger(Extrator.class);
+	final  Logger logger = Logger.getLogger(Extrator.class);
+	
+	private int mes;
+	private int ano;
+	private boolean renameFiles;
+	private boolean armazenarJson;
+	boolean enviarElastiSearch;
 
-	public static void executar(int mes, int ano, boolean renameFiles, boolean armazenarJson,
-			boolean enviarElastiSearch) throws JsonIOException, IOException {
+	public Extrator(int mes, int ano, boolean renameFiles, boolean armazenarJson,
+			boolean enviarElastiSearch) {
+		
+		this.mes = mes;
+		this.ano = ano;
+		this.renameFiles = renameFiles;
+		this.armazenarJson = armazenarJson;
+		this.enviarElastiSearch = enviarElastiSearch;
+	}
+	
+	@Override
+    public Referencia call() throws Exception {
+		
+		executar();
+        return null;
+    }
+	
+	public  void executar() throws JsonIOException, IOException {
 
 		extrair(mes, ano, renameFiles, armazenarJson, enviarElastiSearch);
 
 	}
 
-	private static void initJestClient() {
+	private  void initJestClient() {
 
 		JestClientFactory factory = new JestClientFactory();
 
@@ -86,9 +109,9 @@ public class Extrator {
 		bulkIndexBuilder = new Bulk.Builder();
 	}
 
-	private static final String url = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2009-%s/SINAPI_ref_Insumos_Composicoes_%s.zip";
+	private  final String url = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2009-%s/SINAPI_ref_Insumos_Composicoes_%s.zip";
 
-	private static List<Referencia> extrair(int mes, int ano, boolean renameFiles, boolean armazenarJson,
+	private  List<Referencia> extrair(int mes, int ano, boolean renameFiles, boolean armazenarJson,
 			boolean enviarElastiSearch) {
 
 		List<Referencia> referencias = new ArrayList<>();
@@ -130,7 +153,7 @@ public class Extrator {
 		return referencias;
 	}
 
-	private static void extrair(Referencia referencia, boolean renameFiles, boolean armazenarJson,
+	private  void extrair(Referencia referencia, boolean renameFiles, boolean armazenarJson,
 			boolean enviarElastiSearch) throws IOException {
 
 		parseAnalitico(referencia);
@@ -147,7 +170,7 @@ public class Extrator {
 		}
 	}
 
-	private static void armazenarListaTemporarioInJson(Referencia referencia) throws IOException {
+	private  void armazenarListaTemporarioInJson(Referencia referencia) throws IOException {
 
 		System.out.println("Criando arquivos json.");
 
@@ -189,7 +212,7 @@ public class Extrator {
 
 	}
 
-	private static void saveComposicoesInElasticSearch(Referencia referencia) throws IOException {
+	private  void saveComposicoesInElasticSearch(Referencia referencia) throws IOException {
 
 		initJestClient();
 
@@ -289,7 +312,7 @@ public class Extrator {
 
 	}
 
-	private static void executarInsertElasticSearch(File ufDir, List<File> filesSent) throws IOException {
+	private  void executarInsertElasticSearch(File ufDir, List<File> filesSent) throws IOException {
 		System.out.println("Salvando no ElasticSearch");
 		jestClient.execute(bulkIndexBuilder.build());
 		bulkIndexBuilder = new Bulk.Builder();
@@ -302,9 +325,9 @@ public class Extrator {
 		System.out.println("Pronto!");
 	}
 
-	private static Composicao ultimaComposicaoEncontrada = null;
+	private  Composicao ultimaComposicaoEncontrada = null;
 
-	private static void parseAnalitico(Referencia referencia) throws IOException {
+	private  void parseAnalitico(Referencia referencia) throws IOException {
 
 		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
 
@@ -363,7 +386,7 @@ public class Extrator {
 		// System.out.println(referencia);
 	}
 
-	private static void parceRow(Row row, Referencia referencia) {
+	private  void parceRow(Row row, Referencia referencia) {
 
 		Matcher matcher = patternCodigoSINAPI.matcher(getStringCellValue(row.getCell(6)));
 		boolean linhaComposicao = matcher.find() && getStringCellValue(row.getCell(11)).isEmpty();
@@ -387,7 +410,7 @@ public class Extrator {
 		}
 	}
 
-	private static void extrairLinhaSubComposicao(Row row, SubComposicao subComposicao) {
+	private  void extrairLinhaSubComposicao(Row row, SubComposicao subComposicao) {
 
 		int lastCell = row.getLastCellNum();
 		for (int cellIndex = 0; cellIndex < lastCell; cellIndex++) {
@@ -424,7 +447,7 @@ public class Extrator {
 		// System.out.println("\n");
 	}
 
-	private static void extrairLinhaComposicao(Row row, Composicao composicao, Referencia referencia) {
+	private  void extrairLinhaComposicao(Row row, Composicao composicao, Referencia referencia) {
 
 		// System.out.println("***************************************************");
 
@@ -512,7 +535,7 @@ public class Extrator {
 		// System.out.println("\n");
 	}
 
-	private static String getStringCellValue(Cell cell) {
+	private  String getStringCellValue(Cell cell) {
 
 		if (cell == null) {
 			return "";
@@ -533,7 +556,7 @@ public class Extrator {
 		}
 	}
 
-	private static void downloadFile(String urlFormatada, String toFile) {
+	private  void downloadFile(String urlFormatada, String toFile) {
 		try {
 
 			File fileTarget = new File(toFile);
@@ -568,7 +591,7 @@ public class Extrator {
 	 *            zip file output folder
 	 * @throws IOException
 	 */
-	private static void unZipIt(String zipFile, String outputFolder) throws IOException {
+	private  void unZipIt(String zipFile, String outputFolder) throws IOException {
 
 		FileOutputStream fos = null;
 		FileInputStream fileInputStream = null;
@@ -632,7 +655,7 @@ public class Extrator {
 		}
 	}
 
-	private static void renameFiles(Referencia referencia) {
+	private  void renameFiles(Referencia referencia) {
 
 		File workDir = new File(
 				System.getProperty("user.home") + "/SINAPI" + referencia.getAno() + referencia.getMes());
