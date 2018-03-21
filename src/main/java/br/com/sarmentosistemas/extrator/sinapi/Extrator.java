@@ -271,7 +271,7 @@ public class Extrator implements Callable<Referencia>{
 
 							Composicao insumo = new Composicao();
 							String idGenerico = "SINAPI" + subComposicao.getCodigoComposicao().replaceAll("/", "")
-									+ referencia.getUf() + desonedado;
+									+ referencia.getUf() + composicao.getDesoneracao();
 							insumo.setIdGenerico(idGenerico);
 							insumo.setBanco(composicao.getBanco());
 							insumo.setTemplate(composicao.getTemplate());
@@ -398,6 +398,7 @@ public class Extrator implements Callable<Referencia>{
 			ultimaComposicaoEncontrada = new Composicao();
 			ultimaComposicaoEncontrada.setAno(referencia.getAno());
 			ultimaComposicaoEncontrada.setMes(referencia.getMes());
+			ultimaComposicaoEncontrada.setDesoneracao(referencia.getDesoneracao().startsWith("N") ? "N" : "S");
 			referencia.addComposicaos(ultimaComposicaoEncontrada);
 			extrairLinhaComposicao(row, ultimaComposicaoEncontrada, referencia);
 		} else if (linhaSubComposicao) {
@@ -407,6 +408,8 @@ public class Extrator implements Callable<Referencia>{
 			String idGenerico = "SINAPI" + subComposicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
 					+ ultimaComposicaoEncontrada.getDesoneracao();
 			subComposicao.setIdGenerico(idGenerico);
+			subComposicao.setAno(ultimaComposicaoEncontrada.getAno());
+			subComposicao.setMes(ultimaComposicaoEncontrada.getMes());
 		}
 	}
 
@@ -477,7 +480,7 @@ public class Extrator implements Callable<Referencia>{
 				break;
 			case 6:
 				composicao.setCodigoComposicao(cellValue);
-				String desonedado = referencia.getDesoneracao().startsWith("N") ? "N" : "S";
+				String desonedado = composicao.getDesoneracao().startsWith("N") ? "N" : "S";
 				String idGenerico = "SINAPI" + composicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
 						+ desonedado;
 				composicao.setIdGenerico(idGenerico);
