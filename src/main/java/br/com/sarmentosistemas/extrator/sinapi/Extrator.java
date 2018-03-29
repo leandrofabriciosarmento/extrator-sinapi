@@ -49,6 +49,8 @@ import io.searchbox.core.Index;
 
 public class Extrator implements Callable<Referencia>{
 
+	private static final String URL = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2009-%s/SINAPI_ref_Insumos_Composicoes_%s.zip";
+
 	 String regexCodigoSINAPI = "\\d{4,5}/[0]{0,2}\\d{1,2}|\\d{4,5}";
 	 String regexCodigoSINAPIAntigo = "\\d{1,}/[0]{1,2}\\d{1,2}";
 	 String regexCodigoSINAPIComZeros = "/[0]{1,2}";
@@ -109,8 +111,6 @@ public class Extrator implements Callable<Referencia>{
 		bulkIndexBuilder = new Bulk.Builder();
 	}
 
-	private  final String url = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2009-%s/SINAPI_ref_Insumos_Composicoes_%s.zip";
-
 	private  List<Referencia> extrair(int mes, int ano, boolean renameFiles, boolean armazenarJson,
 			boolean enviarElastiSearch) {
 
@@ -132,7 +132,7 @@ public class Extrator implements Callable<Referencia>{
 
 			} catch (IOException e) {
 				e.printStackTrace();
-				System.out.println("Falha ao processar o arquivo " + url);
+				System.out.println("Falha ao processar o arquivo " + URL);
 			}
 
 			try {
@@ -146,7 +146,7 @@ public class Extrator implements Callable<Referencia>{
 				referencias.add(referencia);
 			} catch (IOException e) {
 
-				System.out.println("Falha ao processar o arquivo " + url);
+				System.out.println("Falha ao processar o arquivo " + URL);
 			}
 		}
 
@@ -329,12 +329,12 @@ public class Extrator implements Callable<Referencia>{
 
 	private  void parseAnalitico(Referencia referencia) throws IOException {
 
-		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
-
-		String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
-
+		String urlFormatada =  montarURLArquivo(referencia);
+		
 		String folderTarget = System.getProperty("user.home") + "/SINAPI" + referencia.getAno() + referencia.getMes()
 				+ "/";
+
+		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
 		String toFile = folderTarget + parametros + ".zip";
 
 		downloadFile(urlFormatada, toFile);
@@ -386,6 +386,13 @@ public class Extrator implements Callable<Referencia>{
 		// System.out.println(referencia);
 	}
 
+	public static String montarURLArquivo(Referencia referencia) {
+		
+		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
+		String urlFormatada = String.format(URL, referencia.getUf().toLowerCase(), parametros);
+		return urlFormatada;
+	}
+	
 	private  void parceRow(Row row, Referencia referencia) {
 
 		Matcher matcher = patternCodigoSINAPI.matcher(getStringCellValue(row.getCell(6)));
