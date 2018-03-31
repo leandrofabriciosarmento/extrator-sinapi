@@ -14,7 +14,7 @@ import java.nio.channels.ReadableByteChannel;
 
 import com.google.gson.Gson;
 
-import br.com.sarmentosistemas.extrator.sinapi.model.Referencia;
+import br.com.sarmentosistemas.sinapi.core.model.Referencia;
 
 public class VerificadorAtualizacao {
 
