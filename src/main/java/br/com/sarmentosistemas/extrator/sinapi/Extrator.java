@@ -25,6 +25,10 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import br.com.sarmentosistemas.sinapi.core.model.Referencia;
+import br.com.sarmentosistemas.sinapi.core.model.Composicao;
+import br.com.sarmentosistemas.sinapi.core.model.SubComposicao;
+
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -37,9 +41,6 @@ import com.google.gson.JsonIOException;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
-import br.com.sarmentosistemas.extrator.sinapi.model.Composicao;
-import br.com.sarmentosistemas.extrator.sinapi.model.Referencia;
-import br.com.sarmentosistemas.extrator.sinapi.model.SubComposicao;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.config.HttpClientConfig;
