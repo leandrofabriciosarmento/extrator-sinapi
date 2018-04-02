@@ -259,6 +259,7 @@ public class Extrator implements Callable<Referencia>{
 					composicao.setLocalidade(referencia.getUf());
 					composicao.setDesoneracao(desonedado);
 					composicao.setTipoFicha("C");
+					composicao.setStatusEdicao("PUBLICADO");
 
 					System.out.println(count + "/" + files.length + " - " + id);
 
@@ -285,6 +286,7 @@ public class Extrator implements Callable<Referencia>{
 							insumo.setNomeComposicao(subComposicao.getNomeComposicao());
 							insumo.setUnidadeMedida(subComposicao.getUnidadeMedida());
 							insumo.setCustoTotal(subComposicao.getPrecoUnitario());
+							insumo.setStatusEdicao("PUBLICADO");
 
 							String idInsumo = insumo.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
 									+ desonedado + referencia.getAno() + referencia.getMes();

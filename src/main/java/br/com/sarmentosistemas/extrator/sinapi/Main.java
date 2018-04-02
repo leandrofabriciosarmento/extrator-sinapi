@@ -8,7 +8,7 @@ public class Main {
 
 	public static void main(String[] args) throws JsonIOException, IOException, InterruptedException {
 
-		boolean renameFiles = false;
+		boolean renameFiles = true;
 		boolean armazenarJson = false;
 		boolean enviarElastiSearch = true;
 
