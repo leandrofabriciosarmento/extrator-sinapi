@@ -311,6 +311,9 @@ public class Extrator implements Callable<Referencia>{
 		} catch (java.net.SocketTimeoutException e) {
 
 			saveComposicoesInElasticSearch(referencia);
+		} catch (Exception e) {
+
+			e.printStackTrace();
 		}
 
 	}

@@ -8,11 +8,11 @@ public class Main {
 
 	public static void main(String[] args) throws JsonIOException, IOException, InterruptedException {
 
-		boolean renameFiles = true;
+		boolean renameFiles = false;
 		boolean armazenarJson = false;
 		boolean enviarElastiSearch = true;
 
-		Extrator extrator = new br.com.sarmentosistemas.extrator.sinapi.Extrator(2, 2018, renameFiles, armazenarJson,
+		Extrator extrator = new br.com.sarmentosistemas.extrator.sinapi.Extrator(4, 2018, renameFiles, armazenarJson,
 				enviarElastiSearch);
 		extrator.executar();
 		
