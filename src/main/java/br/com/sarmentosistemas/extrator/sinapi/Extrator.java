@@ -100,8 +100,8 @@ public class Extrator implements Callable<Referencia>{
 
 		JestClientFactory factory = new JestClientFactory();
 
-		factory.setHttpClientConfig(new HttpClientConfig.Builder("http://ec2-54-211-76-121.compute-1.amazonaws.com:9200")
-				.multiThreaded(true).requestCompressionEnabled(true).defaultCredentials("user", "7kgZ3UkGICUW 	")
+		factory.setHttpClientConfig(new HttpClientConfig.Builder("http://search-precos.sarmentosistemas.com.br:9200")
+				.multiThreaded(true).requestCompressionEnabled(true).defaultCredentials("user", "humtntESDW03")
 				.connTimeout(100000 * 60).build());
 
 		jestClient = factory.getObject();

@@ -13,10 +13,10 @@ public class Main {
 
 		boolean renameFiles = false;
 		boolean armazenarJson = true;
-		boolean enviarElastiSearch = true;
+		boolean enviarElastiSearch = false;
 
 		ExecutorService service = Executors.newFixedThreadPool(2);
-		service.submit(new br.com.sarmentosistemas.extrator.sinapi.Extrator(4, 2019, renameFiles, armazenarJson,
+		service.submit(new br.com.sarmentosistemas.extrator.sinapi.Extrator(1, 2018, renameFiles, armazenarJson,
 				enviarElastiSearch));
 
 		service.shutdown();
