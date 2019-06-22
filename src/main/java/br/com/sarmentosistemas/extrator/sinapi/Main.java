@@ -9,10 +9,10 @@ public class Main {
 	public static void main(String[] args) throws JsonIOException, IOException, InterruptedException {
 
 		boolean renameFiles = false;
-		boolean armazenarJson = false;
+		boolean armazenarJson = true;
 		boolean enviarElastiSearch = true;
 
-		Extrator extrator = new br.com.sarmentosistemas.extrator.sinapi.Extrator(4, 2018, renameFiles, armazenarJson,
+		Extrator extrator = new br.com.sarmentosistemas.extrator.sinapi.Extrator(5, 2019, renameFiles, armazenarJson,
 				enviarElastiSearch);
 		extrator.executar();
 		

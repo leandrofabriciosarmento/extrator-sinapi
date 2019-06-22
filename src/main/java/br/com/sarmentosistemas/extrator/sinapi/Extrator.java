@@ -75,6 +75,9 @@ public class Extrator implements Callable<Referencia>{
 	private boolean renameFiles;
 	private boolean armazenarJson;
 	boolean enviarElastiSearch;
+	private String ipElasticSearch = "34.236.222.148";
+	private String userElasticSearch = "user";
+	private String passwdElasticSearch = "7kgZ3UkGICUW";
 
 	public Extrator(int mes, int ano, boolean renameFiles, boolean armazenarJson,
 			boolean enviarElastiSearch) {
@@ -103,8 +106,8 @@ public class Extrator implements Callable<Referencia>{
 
 		JestClientFactory factory = new JestClientFactory();
 
-		factory.setHttpClientConfig(new HttpClientConfig.Builder("http://search-precos.sarmentosistemas.com.br:9200")
-				.multiThreaded(true).requestCompressionEnabled(true).defaultCredentials("user", "humtntESDW03")
+		factory.setHttpClientConfig(new HttpClientConfig.Builder("http://"+ipElasticSearch+":9200")
+				.multiThreaded(true).requestCompressionEnabled(true).defaultCredentials(userElasticSearch, passwdElasticSearch)
 				.connTimeout(100000 * 60).build());
 
 		jestClient = factory.getObject();
