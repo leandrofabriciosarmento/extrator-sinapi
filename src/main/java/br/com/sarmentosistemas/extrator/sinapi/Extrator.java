@@ -25,6 +25,10 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import br.com.sarmentosistemas.sinapi.core.model.Referencia;
+import br.com.sarmentosistemas.sinapi.core.model.Composicao;
+import br.com.sarmentosistemas.sinapi.core.model.SubComposicao;
+
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -37,9 +41,6 @@ import com.google.gson.JsonIOException;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
-import br.com.sarmentosistemas.extrator.sinapi.model.Composicao;
-import br.com.sarmentosistemas.extrator.sinapi.model.Referencia;
-import br.com.sarmentosistemas.extrator.sinapi.model.SubComposicao;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.config.HttpClientConfig;
@@ -48,6 +49,8 @@ import io.searchbox.core.Bulk.Builder;
 import io.searchbox.core.Index;
 
 public class Extrator implements Callable<Referencia>{
+
+	private static final String URL = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2009-%s/SINAPI_ref_Insumos_Composicoes_%s.zip";
 
 	 String regexCodigoSINAPI = "\\d{4,5}/[0]{0,2}\\d{1,2}|\\d{4,5}";
 	 String regexCodigoSINAPIAntigo = "\\d{1,}/[0]{1,2}\\d{1,2}";
@@ -109,8 +112,6 @@ public class Extrator implements Callable<Referencia>{
 		bulkIndexBuilder = new Bulk.Builder();
 	}
 
-	private  final String url = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2009-%s/SINAPI_ref_Insumos_Composicoes_%s.zip";
-
 	private  List<Referencia> extrair(int mes, int ano, boolean renameFiles, boolean armazenarJson,
 			boolean enviarElastiSearch) {
 
@@ -132,7 +133,7 @@ public class Extrator implements Callable<Referencia>{
 
 			} catch (IOException e) {
 				e.printStackTrace();
-				System.out.println("Falha ao processar o arquivo " + url);
+				System.out.println("Falha ao processar o arquivo " + URL);
 			}
 
 			try {
@@ -146,7 +147,7 @@ public class Extrator implements Callable<Referencia>{
 				referencias.add(referencia);
 			} catch (IOException e) {
 
-				System.out.println("Falha ao processar o arquivo " + url);
+				System.out.println("Falha ao processar o arquivo " + URL);
 			}
 		}
 
@@ -258,6 +259,7 @@ public class Extrator implements Callable<Referencia>{
 					composicao.setLocalidade(referencia.getUf());
 					composicao.setDesoneracao(desonedado);
 					composicao.setTipoFicha("C");
+					composicao.setStatusEdicao("PUBLICADO");
 
 					System.out.println(count + "/" + files.length + " - " + id);
 
@@ -271,7 +273,7 @@ public class Extrator implements Callable<Referencia>{
 
 							Composicao insumo = new Composicao();
 							String idGenerico = "SINAPI" + subComposicao.getCodigoComposicao().replaceAll("/", "")
-									+ referencia.getUf() + desonedado;
+									+ referencia.getUf() + composicao.getDesoneracao();
 							insumo.setIdGenerico(idGenerico);
 							insumo.setBanco(composicao.getBanco());
 							insumo.setTemplate(composicao.getTemplate());
@@ -284,6 +286,7 @@ public class Extrator implements Callable<Referencia>{
 							insumo.setNomeComposicao(subComposicao.getNomeComposicao());
 							insumo.setUnidadeMedida(subComposicao.getUnidadeMedida());
 							insumo.setCustoTotal(subComposicao.getPrecoUnitario());
+							insumo.setStatusEdicao("PUBLICADO");
 
 							String idInsumo = insumo.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
 									+ desonedado + referencia.getAno() + referencia.getMes();
@@ -308,6 +311,9 @@ public class Extrator implements Callable<Referencia>{
 		} catch (java.net.SocketTimeoutException e) {
 
 			saveComposicoesInElasticSearch(referencia);
+		} catch (Exception e) {
+
+			e.printStackTrace();
 		}
 
 	}
@@ -329,12 +335,12 @@ public class Extrator implements Callable<Referencia>{
 
 	private  void parseAnalitico(Referencia referencia) throws IOException {
 
-		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
-
-		String urlFormatada = String.format(url, referencia.getUf().toLowerCase(), parametros);
-
+		String urlFormatada =  montarURLArquivo(referencia);
+		
 		String folderTarget = System.getProperty("user.home") + "/SINAPI" + referencia.getAno() + referencia.getMes()
 				+ "/";
+
+		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
 		String toFile = folderTarget + parametros + ".zip";
 
 		downloadFile(urlFormatada, toFile);
@@ -386,6 +392,13 @@ public class Extrator implements Callable<Referencia>{
 		// System.out.println(referencia);
 	}
 
+	public static String montarURLArquivo(Referencia referencia) {
+		
+		String parametros = referencia.getUf() + "_" + referencia.getPeriodo() + "_" + referencia.getDesoneracao();
+		String urlFormatada = String.format(URL, referencia.getUf().toLowerCase(), parametros);
+		return urlFormatada;
+	}
+	
 	private  void parceRow(Row row, Referencia referencia) {
 
 		Matcher matcher = patternCodigoSINAPI.matcher(getStringCellValue(row.getCell(6)));
@@ -398,6 +411,7 @@ public class Extrator implements Callable<Referencia>{
 			ultimaComposicaoEncontrada = new Composicao();
 			ultimaComposicaoEncontrada.setAno(referencia.getAno());
 			ultimaComposicaoEncontrada.setMes(referencia.getMes());
+			ultimaComposicaoEncontrada.setDesoneracao(referencia.getDesoneracao().startsWith("N") ? "N" : "S");
 			referencia.addComposicaos(ultimaComposicaoEncontrada);
 			extrairLinhaComposicao(row, ultimaComposicaoEncontrada, referencia);
 		} else if (linhaSubComposicao) {
@@ -407,6 +421,8 @@ public class Extrator implements Callable<Referencia>{
 			String idGenerico = "SINAPI" + subComposicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
 					+ ultimaComposicaoEncontrada.getDesoneracao();
 			subComposicao.setIdGenerico(idGenerico);
+			subComposicao.setAno(ultimaComposicaoEncontrada.getAno());
+			subComposicao.setMes(ultimaComposicaoEncontrada.getMes());
 		}
 	}
 
@@ -477,7 +493,7 @@ public class Extrator implements Callable<Referencia>{
 				break;
 			case 6:
 				composicao.setCodigoComposicao(cellValue);
-				String desonedado = referencia.getDesoneracao().startsWith("N") ? "N" : "S";
+				String desonedado = composicao.getDesoneracao().startsWith("N") ? "N" : "S";
 				String idGenerico = "SINAPI" + composicao.getCodigoComposicao().replaceAll("/", "") + referencia.getUf()
 						+ desonedado;
 				composicao.setIdGenerico(idGenerico);
